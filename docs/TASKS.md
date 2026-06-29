@@ -98,7 +98,7 @@
   正常系＋検証 400＋上流失敗 502/429。API キーがレスポンス/ログに出ないことを確認。`/api/health` を追加。
 - **依存タスク**: T01, T02
 - **推奨ブランチ名**: `feature/T04-claude-association-api`
-- **状態**: todo
+- **状態**: done（ClaudeAssociationProvider＋`POST /api/associations`＋`/api/health`＋エラー写像＋DI 配線を実装。provider 8 / route 8 のテストで応答整形・エラー分類・正常/検証400/429/502・エラー応答に内部情報を含まないことを検証し4ゲート green。**実 LLM での PoC 実測（品質・p50/p95 レイテンシ・429 当たり）は `ANTHROPIC_API_KEY` のある環境が必要なため未実施**＝鍵のある環境で実行し FEASIBILITY に追記する。構造化出力は MVP ではプロンプト指定JSON＋Zod厳格検証で代替し、`output_config.format` 導入余地を残す）
 
 ### T05: フロント基盤＋API クライアント＋マップストア土台
 
