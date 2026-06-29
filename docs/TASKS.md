@@ -80,7 +80,7 @@
   T13 の統合テストへ橋渡しできる形でドキュメント化（このタスクでは SQL 適用と reset 再現性まで）。
 - **依存タスク**: T01
 - **推奨ブランチ名**: `feature/T03-supabase-migrations`
-- **状態**: todo
+- **状態**: done（DATABASE §2.3/§3.2 の DDL・index・トリガ・RLS 4ポリシーをマイグレーション化＋config.toml を作成。実 DB での `supabase db reset` 再現性と RLS 回帰テストは Docker/CLI 環境を要するため T13 統合テストで検証する旨を migration 内に明記）
 
 ### T04: ClaudeAssociationProvider＋単発生成 API（PoC 内包）
 

@@ -1,0 +1,27 @@
+# Rensoo / Supabase ローカル設定（ベースライン）。
+# これは最小構成の出発点です。ローカルで `supabase start` する際は、
+# 使用している Supabase CLI のバージョンに合わせて必要なセクションを追加・調整してください
+# （`supabase init` が生成する完全版を正とする運用でも可）。
+# シークレット（プロジェクトキー等）はこのファイルに書かず、.env で管理しコミットしないこと。
+
+project_id = "rensoo"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+# フロント（Vite 既定: 5173）。本番 URL は環境に合わせて設定する。
+site_url = "http://localhost:5173"
