@@ -1,14 +1,28 @@
 import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
+import Anthropic from '@anthropic-ai/sdk'
+import { createApp } from './http/app.js'
+import { ClaudeAssociationProvider } from './infra/providers/claudeAssociationProvider.js'
 
-// T01 は「最小で起動可能な空サーバー」。ルーティング層・DI 配線・連想 API は T04 以降で実装する。
-const app = new Hono()
+// 起動時の DI 配線（実装の選択はこの1箇所に集約・DESIGN §2.3）。
+// API キーはサーバー環境変数のみで扱い、フロントには出さない（AC-13/NFR-5）。.env ファイルは読まない。
+const apiKey = process.env.ANTHROPIC_API_KEY
+if (!apiKey) {
+  // 握りつぶさず明示的に失敗させる（CODING_PHILOSOPHY）。
+  throw new Error('環境変数 ANTHROPIC_API_KEY が設定されていません')
+}
 
-app.get('/', (c) => c.text('Rensoo API'))
+const client = new Anthropic({ apiKey })
+const associationProvider = new ClaudeAssociationProvider(client, {
+  model: process.env.ASSOCIATION_MODEL,
+})
+
+const app = createApp({
+  associationProvider,
+  corsOrigin: process.env.WEB_ORIGIN,
+})
 
 const port = Number(process.env.PORT ?? 8787)
 
 serve({ fetch: app.fetch, port }, (info) => {
-  // 起動ログ（ユーザー向けメッセージは日本語: CODING_PHILOSOPHY）
   console.log(`Rensoo API サーバーを起動しました: http://localhost:${info.port}`)
 })
