@@ -1,0 +1,9 @@
+node_modules
+dist
+.vite
+coverage
+pnpm-lock.yaml
+
+# 設計ドキュメント（人が執筆する散文 Markdown は整形対象外にする）
+docs
+CLAUDE.md
