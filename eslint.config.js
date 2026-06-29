@@ -6,10 +6,11 @@ import globals from 'globals'
 /**
  * Rensoo ルート ESLint 設定（Flat Config）。
  *
- * T01 では基本ルール（JS / TypeScript recommended）と無視設定までを骨子として定義する。
- * 依存方向（DIRECTORY_STRUCTURE §3.1）の `no-restricted-imports` による強制は T02 で本格設定する。
- *   - 例: packages/shared/src/domain/** は hono / @anthropic-ai/sdk / @supabase/supabase-js / react を import しない
- *   - 例: apps/api/src/app/** は infra/ の具体実装を直接 import しない（DI 注入）
+ * 基本ルール（JS / TypeScript recommended）に加え、依存方向（DIRECTORY_STRUCTURE §3.1）を
+ * `no-restricted-imports` で強制する。
+ *   - ドメイン中核（packages/shared/src/domain, apps/api/src/domain）は FW/SDK/UI を import しない。
+ *   - 例: apps/api/src/app/** が infra/ の具体実装を直接 import しない等の規約は、該当層が実装される
+ *     タスク（T08 ほか）で追加する。
  */
 export default tseslint.config(
   {
@@ -25,6 +26,31 @@ export default tseslint.config(
         ...globals.node,
         ...globals.browser,
       },
+    },
+  },
+  // 依存方向の強制（DIRECTORY_STRUCTURE §3.1）:
+  // ドメイン中核（内側）は FW / SDK / UI を import しない。
+  {
+    files: ['packages/shared/src/domain/**/*.ts', 'apps/api/src/domain/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'react', message: 'domain は UI(React) に依存しません' },
+            { name: 'hono', message: 'domain は FW(Hono) に依存しません' },
+            { name: '@anthropic-ai/sdk', message: 'domain は LLM SDK に依存しません' },
+            { name: '@supabase/supabase-js', message: 'domain は Supabase SDK に依存しません' },
+          ],
+          patterns: [
+            { group: ['hono/*'], message: 'domain は FW(Hono) に依存しません' },
+            {
+              group: ['@anthropic-ai/*', '@supabase/*'],
+              message: 'domain は外部 SDK に依存しません',
+            },
+          ],
+        },
+      ],
     },
   },
 )

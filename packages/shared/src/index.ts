@@ -1,6 +1,18 @@
 // @rensoo/shared の公開境界（barrel）。
-// ドメイン IF・モデル・Zod スキーマは T02 以降でここから公開する
+// フロント / サーバー / LLM 検証が参照する型・スキーマ・ドメイン IF をここから公開する
 //（DIRECTORY_STRUCTURE §2.5: barrel は shared の公開境界にのみ置く）。
+// NodeNext のため相対 import/export は .js 拡張子を付ける。
 
-/** パッケージ識別子（雛形の動作確認用。T02 で実体に置き換える）。 */
-export const SHARED_PACKAGE_NAME = '@rensoo/shared'
+// ドメイン: モデル
+export * from './domain/mind-map/model.js'
+// ドメイン: 連想（IF・エラー・整形ロジック）
+export * from './domain/association/associationProvider.js'
+export * from './domain/association/normalizeAssociations.js'
+// ドメイン: 永続化 IF
+export * from './domain/persistence/mindMapRepository.js'
+
+// スキーマ（Zod）
+export * from './schema/associationSchema.js'
+export * from './schema/generationSettingsSchema.js'
+export * from './schema/llmResponseSchema.js'
+export * from './schema/mapSchema.js'

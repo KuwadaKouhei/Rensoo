@@ -65,7 +65,7 @@
   count 超過トリム・不足許容）を書く。ESLint の import 制限（domain は hono/anthropic/supabase/react を import しない）を有効化。
 - **依存タスク**: T01
 - **推奨ブランチ名**: `feature/T02-shared-schema-domain`
-- **状態**: todo
+- **状態**: done（Zod スキーマ・ドメイン IF・モデル・`normalizeAssociations`（6ケース）・孤立エッジ検証（3ケース）を実装し4ゲート green。domain の import 制限を ESLint で有効化）
 
 ### T03: Supabase スキーマ・RLS マイグレーション
 
