@@ -1,11 +1,28 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  addChildNode,
   appendAssociations,
   applyBatch,
   createRootMap,
+  editNodeText,
+  removeNodeCascade,
   useMindMapStore,
   type MapData,
 } from './mindMapStore'
+
+/** 検証用: 全エッジの source/target がノードに存在する（＝孤立エッジが無い）か。 */
+const hasNoOrphanEdges = (data: MapData): boolean => {
+  const ids = new Set(data.nodes.map((n) => n.id))
+  return data.edges.every((e) => ids.has(e.source) && ids.has(e.target))
+}
+
+/** 起点→子2→孫1 のツリー（n1→n2,n3 / n2→n4）。 */
+const buildTree = (): MapData => {
+  let map = createRootMap('宇宙') // n1
+  map = appendAssociations(map, 'n1', [{ word: '銀河' }, { word: '惑星' }]) // n2, n3
+  map = appendAssociations(map, 'n2', [{ word: '恒星' }]) // n4
+  return map
+}
 
 // 純粋関数（createRootMap / appendAssociations）= フロントのドメイン中核。モックなしで検証する。
 describe('createRootMap', () => {
@@ -120,6 +137,76 @@ describe('applyBatch（SSE バッチ取り込み・サーバー採番 id）', ()
   })
 })
 
+describe('addChildNode（手動追加・FR-15）', () => {
+  it('親に手動ノード（origin=manual）と親→子エッジを追加する', () => {
+    const next = addChildNode(buildTree(), 'n1', '人工衛星')
+    const added = next.nodes.at(-1)
+    expect(added).toMatchObject({ text: '人工衛星', depth: 1, origin: 'manual' })
+    expect(next.edges.some((e) => e.source === 'n1' && e.target === added?.id)).toBe(true)
+    expect(hasNoOrphanEdges(next)).toBe(true)
+  })
+
+  it('既存 id と衝突しない新 id を採番する', () => {
+    // seq が古く n2 と衝突しうる状況でも衝突しない。
+    const base: MapData = {
+      nodes: [
+        { id: 'n1', text: '宇宙', depth: 0, origin: 'root' },
+        { id: 'n2', text: '銀河', depth: 1, origin: 'auto' },
+      ],
+      edges: [{ id: 'n1->n2', source: 'n1', target: 'n2' }],
+      seq: 0,
+    }
+    const next = addChildNode(base, 'n1', '惑星')
+    const ids = next.nodes.map((n) => n.id)
+    expect(new Set(ids).size).toBe(ids.length) // id 重複なし
+  })
+
+  it('親が無ければ throw、空テキストも throw', () => {
+    expect(() => addChildNode(buildTree(), 'n999', 'x')).toThrow('親ノードが見つかりません')
+    expect(() => addChildNode(buildTree(), 'n1', '   ')).toThrow('テキストが空')
+  })
+})
+
+describe('editNodeText（編集・FR-16）', () => {
+  it('指定ノードのテキストだけを更新する', () => {
+    const next = editNodeText(buildTree(), 'n2', '銀河系')
+    expect(next.nodes.find((n) => n.id === 'n2')?.text).toBe('銀河系')
+    expect(next.edges).toEqual(buildTree().edges) // エッジは不変
+  })
+
+  it('空テキスト・未知ノードは throw', () => {
+    expect(() => editNodeText(buildTree(), 'n2', '  ')).toThrow('テキストが空')
+    expect(() => editNodeText(buildTree(), 'zzz', 'x')).toThrow('ノードが見つかりません')
+  })
+})
+
+describe('removeNodeCascade（削除・FR-17/AC-7）', () => {
+  it('葉ノード削除で接続エッジも消え、孤立エッジが残らない', () => {
+    const next = removeNodeCascade(buildTree(), 'n4')
+    expect(next.nodes.map((n) => n.id)).toEqual(['n1', 'n2', 'n3'])
+    expect(next.edges.some((e) => e.target === 'n4')).toBe(false)
+    expect(hasNoOrphanEdges(next)).toBe(true)
+  })
+
+  it('中間ノード削除で子孫もまとめて消える（孤立ノード・孤立エッジを残さない）', () => {
+    const next = removeNodeCascade(buildTree(), 'n2') // n2 と子孫 n4 を削除
+    expect(next.nodes.map((n) => n.id).sort()).toEqual(['n1', 'n3'])
+    expect(next.edges).toEqual([{ id: 'n1->n3', source: 'n1', target: 'n3' }])
+    expect(hasNoOrphanEdges(next)).toBe(true)
+  })
+
+  it('起点ノード削除で全ノード・全エッジが消える', () => {
+    const next = removeNodeCascade(buildTree(), 'n1')
+    expect(next.nodes).toEqual([])
+    expect(next.edges).toEqual([])
+  })
+
+  it('未知ノードの削除は何もしない', () => {
+    const tree = buildTree()
+    expect(removeNodeCascade(tree, 'zzz')).toEqual(tree)
+  })
+})
+
 describe('useMindMapStore', () => {
   beforeEach(() => {
     useMindMapStore.getState().reset()
@@ -190,5 +277,45 @@ describe('useMindMapStore', () => {
   it('setStopReason が反映される', () => {
     useMindMapStore.getState().setStopReason('max_depth')
     expect(useMindMapStore.getState().stopReason).toBe('max_depth')
+  })
+
+  it('addChildNode / editNode / removeNode がストアに反映される', () => {
+    const store = useMindMapStore.getState()
+    store.startNewMap('宇宙') // n1
+    store.addChildNode('n1', '銀河')
+    let s = useMindMapStore.getState()
+    const childId = s.nodes[1]?.id
+    expect(s.nodes.map((n) => n.text)).toEqual(['宇宙', '銀河'])
+
+    store.editNode(childId!, '銀河系')
+    expect(useMindMapStore.getState().nodes[1]?.text).toBe('銀河系')
+
+    store.removeNode(childId!)
+    s = useMindMapStore.getState()
+    expect(s.nodes.map((n) => n.text)).toEqual(['宇宙'])
+    expect(s.edges).toEqual([])
+  })
+
+  it('選択中ノードを削除すると選択が解除される', () => {
+    const store = useMindMapStore.getState()
+    store.startNewMap('宇宙')
+    store.addChildNode('n1', '銀河')
+    const childId = useMindMapStore.getState().nodes[1]?.id ?? ''
+    store.selectNode(childId)
+    expect(useMindMapStore.getState().selectedNodeId).toBe(childId)
+
+    store.removeNode(childId)
+    expect(useMindMapStore.getState().selectedNodeId).toBeNull()
+  })
+
+  it('別ノード削除では選択は保持される', () => {
+    const store = useMindMapStore.getState()
+    store.startNewMap('宇宙')
+    store.addChildNode('n1', '銀河')
+    store.addChildNode('n1', '惑星')
+    const [, a, b] = useMindMapStore.getState().nodes
+    store.selectNode(a!.id)
+    store.removeNode(b!.id)
+    expect(useMindMapStore.getState().selectedNodeId).toBe(a!.id)
   })
 })

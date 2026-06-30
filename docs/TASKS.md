@@ -199,7 +199,7 @@
   追加/編集/削除後の nodes/edges 整合（孤立エッジが残らない・存在しないノードを指すエッジが生じない）。編集結果が描画反映（AC-7）。
 - **依存タスク**: T06
 - **推奨ブランチ名**: `feature/T11-node-manual-edit`
-- **状態**: todo
+- **状態**: done（ストアに純粋関数 `addChildNode`（origin=manual・既存 id 衝突回避の採番・親なし/空テキストは throw）／`editNodeText`（空・未知ノードは throw・エッジ不変）／`removeNodeCascade`（**対象＋子孫を BFS で削除し接続エッジを除去＝孤立エッジも孤立ノードも残さない**・DATABASE §6.1 の snapshot 内整合）を実装し、`addChildNode`/`editNode`/`removeNode`/`selectNode`＋`selectedNodeId` をアクション化（削除時に選択中なら選択解除）。`NodeEditPopover`（選択ノードの展開・名前編集・子追加・削除）を実装し、`MindMapCanvas` クリック→ノード選択→ポップオーバー表示に配線。**重点ユニット**: 追加3／編集2／カスケード削除4（葉・中間で子孫消去・起点で全消去・未知は無変更、いずれも孤立エッジ無しを検証）＋ストアアクション4（反映・選択解除・別ノード削除で選択保持）。4ゲート green（型/Lint/Vitest shared9・api41・**web65**/ビルド）。**マイルストーン M3 完了**（AC-7）。編集 UI の描画反映は build/typecheck＋ストア整合テストで担保（jsdom コンポーネントテストは TEST_PHILOSOPHY に従い不採用）。クリック挙動を T10 の直接展開からノード選択（ポップオーバー内に「展開」ボタン）へ集約＝手動展開も AC-4 を維持）
 
 ### T12: 認証基盤（Supabase Auth＋JWKS 検証ミドルウェア）
 
