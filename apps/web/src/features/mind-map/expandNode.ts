@@ -40,7 +40,8 @@ export const expandNode = async (nodeId: string, deps: ExpandNodeDeps = {}): Pro
     useMindMapStore.getState().setStatus('idle')
   } catch (err) {
     const message = err instanceof ApiError ? err.message : FALLBACK_ERROR_MESSAGE
-    useMindMapStore.getState().setError(message)
+    const retryable = err instanceof ApiError ? err.retryable : true
+    useMindMapStore.getState().setError(message, retryable)
     if (!(err instanceof ApiError)) {
       console.error('[expandNode] 想定外のエラー', err)
     }

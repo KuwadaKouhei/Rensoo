@@ -279,6 +279,14 @@ describe('useMindMapStore', () => {
     expect(useMindMapStore.getState().stopReason).toBe('max_depth')
   })
 
+  it('setError の retryable が反映される（既定 true / 明示 false）', () => {
+    useMindMapStore.getState().setError('一時的な失敗')
+    expect(useMindMapStore.getState().errorRetryable).toBe(true)
+
+    useMindMapStore.getState().setError('恒久的な失敗', false)
+    expect(useMindMapStore.getState().errorRetryable).toBe(false)
+  })
+
   it('addChildNode / editNode / removeNode がストアに反映される', () => {
     const store = useMindMapStore.getState()
     store.startNewMap('宇宙') // n1

@@ -5,7 +5,7 @@ import {
   normalizeAssociations,
   type AssociationProvider,
 } from '@rensoo/shared'
-import type { ErrorResponseBody } from '../errors.js'
+import { errorBody } from '../errorResponses.js'
 import type { AuthEnv } from '../middleware/auth.js'
 
 /**
@@ -20,14 +20,12 @@ export const registerAssociationRoutes = (
     '/api/associations',
     zValidator('json', associateRequestSchema, (result, c) => {
       if (!result.success) {
-        const body: ErrorResponseBody = {
-          error: {
-            code: 'VALIDATION',
+        return c.json(
+          errorBody('VALIDATION', {
             message: '入力が正しくありません。キーワードと件数を確認してください。',
-            retryable: false,
-          },
-        }
-        return c.json(body, 400)
+          }),
+          400,
+        )
       }
       // 成功時は何も返さず後続ハンドラへ進む。
       return undefined

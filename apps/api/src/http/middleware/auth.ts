@@ -6,7 +6,7 @@
 
 import type { MiddlewareHandler } from 'hono'
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose'
-import type { ErrorResponseBody } from '../errors.js'
+import { errorBody } from '../errorResponses.js'
 
 /** Context 変数の型（保存系ハンドラが userId と JWT を読む）。 */
 export type AuthEnv = { Variables: { userId?: string; token?: string } }
@@ -62,8 +62,7 @@ const extractBearer = (header: string | undefined): string | null => {
 }
 
 /** 401 応答（日本語・内部情報を含めない）。 */
-const unauthorized = (message: string) =>
-  ({ error: { code: 'UNAUTHORIZED', message, retryable: false } }) satisfies ErrorResponseBody
+const unauthorized = (message: string) => errorBody('UNAUTHORIZED', { message })
 
 /**
  * 認証必須ミドルウェア（保存系・AC-9〜11）。

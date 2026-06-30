@@ -60,7 +60,7 @@ export const startExpansion = async (
         current.setStatus('idle')
       }
     },
-    onError: (error) => useMindMapStore.getState().setError(error.message),
+    onError: (error) => useMindMapStore.getState().setError(error.message, error.retryable),
   }
 
   try {
@@ -73,7 +73,8 @@ export const startExpansion = async (
     }
   } catch (err) {
     const message = err instanceof ApiError ? err.message : FALLBACK_ERROR_MESSAGE
-    useMindMapStore.getState().setError(message)
+    const retryable = err instanceof ApiError ? err.retryable : true
+    useMindMapStore.getState().setError(message, retryable)
     if (!(err instanceof ApiError)) {
       console.error('[startExpansion] 想定外のエラー', err)
     }

@@ -253,7 +253,7 @@
   バンドル/ネットワーク/ログに Anthropic API キーが現れないことを点検（AC-13）。
 - **依存タスク**: T07, T09, T14
 - **推奨ブランチ名**: `feature/T15-error-handling-secrets`
-- **状態**: todo
+- **状態**: done（サーバーのエラー応答を `errorResponses.ts`（code→status/日本語/retryable の単一テーブル＋`errorBody`＋`AppError`）に一元化し、`handleError` を AppError／AssociationProviderError／未知例外の3経路で一貫日本語化（AssociationProviderError は実 retryable を尊重）。auth/associations/expansion/maps の各インライン応答を `errorBody` に統一。フロントは store に `errorRetryable` を追加し `setError(message, retryable)` に拡張、各フロー（createAssociationMap/runExpansion/expandNode/mapsFlow）が ApiError.retryable を反映、`MindMapToolbar` は **retryable のときのみ再試行ボタン表示**（AC-12）。**テスト**: errorResponses 6（テーブル網羅・retryable 規約・上書き・AppError）／handleError 4（AppError 写像・429・未知 500・**内部情報/秘密を応答に含めない**=AC-13）／store retryable／フロー retryable 反映。**秘匿点検（AC-13）**: web バンドル（dist）に Anthropic キー痕跡 0 件・露出は公開値（API URL/Supabase URL/anon キー）のみ・`ANTHROPIC_API_KEY` 参照はサーバー index.ts のみを確認。4ゲート green（型/Lint/Vitest shared9・**api74**・**web78**/ビルド）。**マイルストーン M5 の前半完了**。残りの性能（コード分割）・可観測性・E2E・CI 強化は T16）
 
 ### T16: 仕上げ（性能・可観測性・E2E・CI ゲート強化）
 

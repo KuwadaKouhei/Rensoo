@@ -15,6 +15,7 @@ export const MindMapToolbar = () => {
   const status = useMindMapStore((s) => s.status)
   const mode = useMindMapStore((s) => s.mode)
   const errorMessage = useMindMapStore((s) => s.errorMessage)
+  const errorRetryable = useMindMapStore((s) => s.errorRetryable)
   const stopReason = useMindMapStore((s) => s.stopReason)
   const setMode = useMindMapStore((s) => s.setMode)
   const { start, stop } = useExpansionStream()
@@ -83,9 +84,11 @@ export const MindMapToolbar = () => {
       {status === 'error' && errorMessage && (
         <div role="alert" className="mindmap-toolbar__error">
           <span>{errorMessage}</span>
-          <Button type="button" variant="secondary" onClick={create}>
-            再試行
-          </Button>
+          {errorRetryable && (
+            <Button type="button" variant="secondary" onClick={create}>
+              再試行
+            </Button>
+          )}
         </div>
       )}
 

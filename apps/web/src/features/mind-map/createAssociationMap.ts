@@ -49,7 +49,8 @@ export const createAssociationMap = async (
     useMindMapStore.getState().setStatus('idle')
   } catch (err) {
     const message = err instanceof ApiError ? err.message : FALLBACK_ERROR_MESSAGE
-    useMindMapStore.getState().setError(message)
+    const retryable = err instanceof ApiError ? err.retryable : true
+    useMindMapStore.getState().setError(message, retryable)
     // 想定外（非 ApiError）はログに残して再スローはしない（UI で再試行可能にするため状態に反映済み）。
     if (!(err instanceof ApiError)) {
       console.error('[createAssociationMap] 想定外のエラー', err)

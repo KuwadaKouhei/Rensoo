@@ -85,7 +85,8 @@ export const openMap = async (id: string, deps: MapsFlowDeps = {}): Promise<bool
     useMindMapStore.getState().loadMap(saved)
     return true
   } catch (err) {
-    useMindMapStore.getState().setError(messageOf(err, 'マップを開けませんでした。'))
+    const retryable = err instanceof ApiError ? err.retryable : true
+    useMindMapStore.getState().setError(messageOf(err, 'マップを開けませんでした。'), retryable)
     return false
   }
 }
@@ -102,7 +103,8 @@ export const deleteMapById = async (id: string, deps: MapsFlowDeps = {}): Promis
     }
     return true
   } catch (err) {
-    useMindMapStore.getState().setError(messageOf(err, 'マップを削除できませんでした。'))
+    const retryable = err instanceof ApiError ? err.retryable : true
+    useMindMapStore.getState().setError(messageOf(err, 'マップを削除できませんでした。'), retryable)
     return false
   }
 }

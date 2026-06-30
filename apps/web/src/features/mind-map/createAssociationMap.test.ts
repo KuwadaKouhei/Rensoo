@@ -69,9 +69,20 @@ describe('createAssociationMap', () => {
       },
     })
 
-    const { status, errorMessage } = useMindMapStore.getState()
+    const { status, errorMessage, errorRetryable } = useMindMapStore.getState()
     expect(status).toBe('error')
     expect(errorMessage).toBe('リクエストが集中しています。しばらくして再試行してください。')
+    expect(errorRetryable).toBe(true) // 429 は再試行可能（再試行ボタンを出す・AC-12）
+  })
+
+  it('再試行不可な API 失敗は errorRetryable=false（再試行ボタンを出さない）', async () => {
+    await createAssociationMap('宇宙', {
+      requestAssociations: async () => {
+        throw new ApiError('入力が正しくありません。', 'VALIDATION', false, 400)
+      },
+    })
+    expect(useMindMapStore.getState().status).toBe('error')
+    expect(useMindMapStore.getState().errorRetryable).toBe(false)
   })
 
   it('想定外エラーは汎用日本語メッセージにフォールバックしログする', async () => {
