@@ -4,11 +4,13 @@
 import { Route, Routes } from 'react-router-dom'
 import { MindMapCanvas } from '../features/mind-map/MindMapCanvas'
 import { MindMapToolbar } from '../features/mind-map/MindMapToolbar'
+import { expandNode } from '../features/mind-map/expandNode'
 import { GenerationSettingsPanel } from '../features/generation-settings/GenerationSettingsPanel'
 
 /**
- * ホーム（マップ編集画面）。全画面の描画キャンバスに、操作 UI（入力・作成・件数設定）を重ねる。
+ * ホーム（マップ編集画面）。全画面の描画キャンバスに、操作 UI（入力・作成・件数設定・モード）を重ねる。
  * キーワードを入力して「作成」すると連想マップが表示・展開される（AC-1,2）。
+ * ノードクリックは手動展開（手動モードのみ作用・連鎖しない・AC-4）。
  */
 const HomePage = () => (
   <main className="map-screen">
@@ -16,7 +18,7 @@ const HomePage = () => (
       <MindMapToolbar />
       <GenerationSettingsPanel />
     </div>
-    <MindMapCanvas />
+    <MindMapCanvas onNodeSelect={(id) => void expandNode(id)} />
   </main>
 )
 

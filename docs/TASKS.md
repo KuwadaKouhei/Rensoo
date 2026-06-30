@@ -187,7 +187,7 @@
   手動クリックで子ノードが1段だけ増える。
 - **依存タスク**: T09
 - **推奨ブランチ名**: `feature/T10-auto-manual-toggle`
-- **状態**: todo
+- **状態**: done（手動展開フロー `expandNode`（手動モードのみ作用＝自動モードは no-op／生成中・未知ノードは no-op で多重実行と自動連鎖の競合を防止／対象ノードの語で `/api/associations` を**1回だけ**呼び `appendChildren` で子を1段追加＝**連鎖しない**／失敗は日本語 error）を実装。`MindMapToolbar` に自動/手動トグル（ラジオ・`setMode`）と作成分岐（自動=自走展開 SSE／手動=単発 createAssociationMap）、手動時の操作ガイド表示、停止ボタンは自動時のみ。`MindMapCanvas` の `onNodeSelect` を `expandNode` に配線（クリック→手動展開）。**テスト**: expandNode 6（手動で1段・連鎖なし=AC-4／子クリックで孫展開／自動は no-op=AC-5／生成中 no-op／未知ノード no-op／API 失敗の日本語 error）。4ゲート green（型/Lint/Vitest shared9・api41・**web53**/ビルド）。**マイルストーン M2 完了**＝自動連鎖・手動展開・トグル・停止が画面で動く（AC-3,4,5,6）。作成ボタンの mode 分岐は薄い結線のため build/typecheck＋expandNode/startExpansion/createAssociationMap の各テストで担保（jsdom コンポーネントテストは TEST_PHILOSOPHY に従い不採用）。SSE 接続クローズの実ブラウザ停止確認は T13/手動に橋渡し）
 
 ### T11: ノード手動編集（追加・編集・削除／孤立エッジ除去）
 
