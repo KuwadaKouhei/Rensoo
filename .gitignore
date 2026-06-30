@@ -5,6 +5,12 @@ dist/
 coverage/
 *.tsbuildinfo
 
+# E2E（Playwright）成果物
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
 # ログ
 *.log
 npm-debug.log*

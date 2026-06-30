@@ -266,7 +266,7 @@
   停止→（ログインして）保存→一覧から開く」のハッピーパス。CI が型/Lint/ユニット/統合/E2E をゲート化し `main` グリーンを保証。
 - **依存タスク**: T09, T11, T14, T15
 - **推奨ブランチ名**: `feature/T16-perf-observability-e2e`
-- **状態**: todo
+- **状態**: done（**性能**: Vite `manualChunks` で描画系（@xyflow/react＋@dagrejs/dagre＝vendor-flow）と React ランタイム（vendor-react）を分割し、最大チャンクを ~513kB→~254kB に縮小・**500kB 警告解消**（NFR-2／キャッシュ効率）。`MindMapCanvas` は座標算出を `useMemo([nodes,edges,layout])` で差分時のみ再計算。**可観測性**: 構造化ログ `app/observability/logger`（JSON 1 行・`level/event/timestamp`＋フィールド、`authorization/token/apikey/secret/cookie` 等のキーを検出して値を除外＝AC-13/NFR-5）を実装し、展開ルートで `expansion.start`/`expansion.finish`（reason・totalNodes・llmBatches・durationMs、キーワード本文は length のみ）を記録。**E2E**: Playwright ハッピーパス（`e2e/happy-path.spec.ts`：キーワード→「作成」→自走展開 SSE→起点＋連想ノード描画→停止理由表示）を SSE ルートモックで実 LLM 不要に。`vite preview` を webServer に、Vitest は `e2e/**` を除外。**ローカル実行で 1 passed（7.5s）を確認**。**CI**: `ci.yml` に e2e ジョブ（Playwright ブラウザ導入＋`pnpm e2e`）を追加し、型/Lint/Vitest/ビルド＋E2E をゲート化。**テスト**: logger 4（機微キー除外・undefined 落とし・JSON 構造）。4ゲート green（型/Lint/Vitest shared9・**api77**・web78/ビルド）＋E2E 1。**マイルストーン M5 完了＝全タスク T01〜T16 done**。保存/ログインを含む完全 E2E と実 Supabase/実 LLM 通し（OAuth・RLS・自走展開 PoC 実測）はステージング/手動に橋渡し）
 
 ---
 
