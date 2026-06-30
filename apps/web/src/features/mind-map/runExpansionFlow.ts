@@ -16,6 +16,8 @@ export const STOP_REASON_MESSAGE: Record<ExpansionStopReason, string> = {
   max_nodes: 'ノード数の上限に達したため展開を停止しました。',
   user_stop: '展開を停止しました。',
   completed: '展開が完了しました。',
+  // error 停止は通常 onError が status=error にするため、この通知は表示されない（型の網羅のため定義）。
+  error: '展開中にエラーが発生しました。',
 }
 
 const FALLBACK_ERROR_MESSAGE = '自走展開に失敗しました。しばらくして再試行してください。'

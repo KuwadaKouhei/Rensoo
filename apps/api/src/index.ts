@@ -39,11 +39,17 @@ const repositoryFactory: MindMapRepositoryFactory | undefined =
     ? createSupabaseRepositoryFactory({ url: supabaseUrl, anonKey: supabaseAnonKey })
     : undefined
 
-// CORS: WEB_ORIGIN 未設定だと全許可（'*'）にフォールバックする。本番では必ず指定する（フェイルオープン警告）。
+// CORS: WEB_ORIGIN 未設定だと全許可（'*'）にフォールバックする。
+// 本番（NODE_ENV=production）では設定漏れをフェイルクローズ（起動失敗）にし、開発では警告に留める。
 const webOrigin = process.env.WEB_ORIGIN
 if (!webOrigin) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '本番では WEB_ORIGIN（許可するフロントのオリジン）が必須です。CORS の全許可フォールバックを防ぐため設定してください。',
+    )
+  }
   console.warn(
-    '[起動] WEB_ORIGIN が未設定です。CORS を全オリジン許可で起動します。本番では WEB_ORIGIN を必ず指定してください。',
+    '[起動] WEB_ORIGIN が未設定です。CORS を全オリジン許可で起動します（開発用）。本番では WEB_ORIGIN を必ず指定してください。',
   )
 }
 

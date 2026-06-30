@@ -39,12 +39,16 @@ export const expansionProgressSchema = z.object({
   depth: z.number().int().min(0),
 })
 
-/** 停止理由。max_depth/max_nodes=停止条件、user_stop=接続クローズ、completed=自然終了（フロンティア枯渇）。 */
+/**
+ * 停止理由。max_depth/max_nodes=停止条件、user_stop=接続クローズ、completed=自然終了（フロンティア枯渇）、
+ * error=展開中のエラーによる停止（直前に error イベントを伴う）。
+ */
 export const expansionStopReasonSchema = z.enum([
   'max_depth',
   'max_nodes',
   'user_stop',
   'completed',
+  'error',
 ])
 
 /** stopped: 展開の終了通知。 */
