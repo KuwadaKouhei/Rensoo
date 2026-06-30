@@ -6,6 +6,7 @@ import { errorBody } from '../errorResponses.js'
 import type { AuthEnv } from '../middleware/auth.js'
 import { runExpansion, type ExpansionEvent } from '../../app/expansion/expansionOrchestrator.js'
 import type { InMemoryExpansionLock } from '../../app/expansion/expansionLock.js'
+import { logInfo } from '../../app/observability/logger.js'
 
 /** 内部イベント type → SSE イベント名の対応。 */
 const EVENT_NAME: Record<ExpansionEvent['type'], string> = {
@@ -66,16 +67,37 @@ export const registerExpansionRoutes = (
           signal.aborted = true
         })
 
+        // 可観測性（DESIGN §8.4）: コール数・所要時間・停止理由を記録（機微情報＝キーワード本文は出さない）。
+        const startedAt = Date.now()
+        let llmBatches = 0
+        let stoppedReason = 'unknown'
+        let totalNodes = 0
+        logInfo('expansion.start', {
+          rootInputLength: key.length,
+          countPerNode: settings.countPerNode,
+          maxDepth: settings.maxDepth,
+          maxNodes: settings.maxNodes,
+        })
+
         try {
           await runExpansion(rootInput, settings, {
             provider,
             signal,
             emit: async (event) => {
+              if (event.type === 'node-batch' && event.parentId !== null) llmBatches += 1
+              if (event.type === 'progress') totalNodes = event.totalNodes
+              if (event.type === 'stopped') stoppedReason = event.reason
               await stream.writeSSE({
                 event: EVENT_NAME[event.type],
                 data: JSON.stringify(toPayload(event)),
               })
             },
+          })
+          logInfo('expansion.finish', {
+            reason: stoppedReason,
+            totalNodes,
+            llmBatches,
+            durationMs: Date.now() - startedAt,
           })
         } catch (err) {
           // 想定外（emit/stream 失敗など）は SSE error として通知し握りつぶさない。

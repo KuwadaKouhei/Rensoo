@@ -35,3 +35,31 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 共有パッケージを先にビルド（web の build/preview が dist を参照するため）。
+      - name: Build shared
+        run: pnpm build:shared
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @rensoo/web exec playwright install --with-deps chromium
+
+      # ハッピーパス E2E（API は spec 内でモック・実 LLM 不要）。
+      - name: E2E
+        run: pnpm --filter @rensoo/web e2e
