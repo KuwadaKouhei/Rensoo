@@ -141,7 +141,7 @@
   日本語ノードが描画される（AC-1）、件数変更が反映される（AC-2）。
 - **依存タスク**: T04, T05, T06
 - **推奨ブランチ名**: `feature/T07-create-flow-vertical`
-- **状態**: todo
+- **状態**: done（生成フロー `createAssociationMap`（起点生成→生成中表示→API 連想取得（件数は `settings.countPerNode` に追従）→子取り込み、失敗は ApiError の日本語 message／想定外は汎用文＋ログで status=error）を実装し、T04 API・T05 ストア・T06 描画を結線。`MindMapToolbar`（入力＋「作成」、生成中はローディング表示・入力/ボタン無効化、エラー時に日本語メッセージ＋再試行）、`GenerationSettingsPanel`（件数 3〜10 を shared Zod で範囲検証）、ホームに操作 UI を Canvas へ重ねて配置。**統合テスト 6 ケース**（作成で起点＋連想ノード描画=AC-1／件数追従=AC-2／生成中 generating→完了 idle／API 失敗の日本語 error=AC-12／想定外フォールバック＋ログ／空入力は API 非呼び出し）。ストアは純粋なまま保ち API 境界のみスタブ（TEST_PHILOSOPHY「主要フローの統合テスト＋外部依存スタブ」に準拠し、jsdom コンポーネントテストは採らずフロー統合テストで AC を担保）。4ゲート green（型/Lint/Vitest shared9・api16・**web29**/ビルド）。**マイルストーン M1 完了**＝ゲストで「入力→作成→マインドマップ表示」が画面で動く。バンドル ~513kB は M5/T15 でコード分割予定）
 
 ### T08: 自走展開オーケストレータ＋SSE（停止条件・コスト保護／PoC 内包）
 

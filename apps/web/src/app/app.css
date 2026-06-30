@@ -1,0 +1,67 @@
+/* マップ編集画面の最小スタイル（操作 UI を全画面キャンバスへ重ねる）。 */
+:root {
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.map-screen {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+.map-screen__overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mindmap-toolbar__form {
+  display: flex;
+  gap: 8px;
+}
+
+.mindmap-toolbar__form input {
+  width: 240px;
+  padding: 6px 8px;
+}
+
+.mindmap-toolbar__error {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  color: #b00020;
+}
+
+.generation-settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.generation-settings__field input {
+  width: 72px;
+  padding: 6px 8px;
+}

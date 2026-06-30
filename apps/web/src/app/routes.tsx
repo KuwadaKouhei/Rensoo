@@ -3,13 +3,19 @@
 // キーワード入力→「作成」→生成の操作 UI は T07 でこのホームに追加する。
 import { Route, Routes } from 'react-router-dom'
 import { MindMapCanvas } from '../features/mind-map/MindMapCanvas'
+import { MindMapToolbar } from '../features/mind-map/MindMapToolbar'
+import { GenerationSettingsPanel } from '../features/generation-settings/GenerationSettingsPanel'
 
 /**
- * ホーム（マップ編集画面）。現時点はマインドマップ描画キャンバスを全画面で表示する。
- * キーワード入力・「作成」ボタン等の操作 UI は T07 で重ねて実装する。
+ * ホーム（マップ編集画面）。全画面の描画キャンバスに、操作 UI（入力・作成・件数設定）を重ねる。
+ * キーワードを入力して「作成」すると連想マップが表示・展開される（AC-1,2）。
  */
 const HomePage = () => (
-  <main style={{ width: '100vw', height: '100vh' }}>
+  <main className="map-screen">
+    <div className="map-screen__overlay">
+      <MindMapToolbar />
+      <GenerationSettingsPanel />
+    </div>
     <MindMapCanvas />
   </main>
 )
