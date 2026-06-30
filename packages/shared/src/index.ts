@@ -14,5 +14,6 @@ export * from './domain/persistence/mindMapRepository.js'
 // スキーマ（Zod）
 export * from './schema/associationSchema.js'
 export * from './schema/generationSettingsSchema.js'
+export * from './schema/expansionSchema.js'
 export * from './schema/llmResponseSchema.js'
 export * from './schema/mapSchema.js'
