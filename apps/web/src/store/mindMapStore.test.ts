@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { appendAssociations, createRootMap, useMindMapStore, type MapData } from './mindMapStore'
+import {
+  appendAssociations,
+  applyBatch,
+  createRootMap,
+  useMindMapStore,
+  type MapData,
+} from './mindMapStore'
 
 // 純粋関数（createRootMap / appendAssociations）= フロントのドメイン中核。モックなしで検証する。
 describe('createRootMap', () => {
@@ -60,6 +66,60 @@ describe('appendAssociations', () => {
   })
 })
 
+describe('applyBatch（SSE バッチ取り込み・サーバー採番 id）', () => {
+  const empty = (): MapData => ({ nodes: [], edges: [], seq: 0 })
+
+  it('起点バッチ（parentId=null）はマップを置き換え root を作る', () => {
+    const next = applyBatch(empty(), {
+      parentId: null,
+      depth: 0,
+      nodes: [{ id: 'n1', text: '宇宙' }],
+    })
+    expect(next.nodes).toEqual([{ id: 'n1', text: '宇宙', depth: 0, origin: 'root' }])
+    expect(next.edges).toEqual([])
+  })
+
+  it('子バッチは未知 id を追加し親→子エッジを張る（depth・origin=auto）', () => {
+    const root = applyBatch(empty(), {
+      parentId: null,
+      depth: 0,
+      nodes: [{ id: 'n1', text: '宇宙' }],
+    })
+    const next = applyBatch(root, {
+      parentId: 'n1',
+      depth: 1,
+      nodes: [
+        { id: 'n2', text: '銀河' },
+        { id: 'n3', text: '惑星' },
+      ],
+    })
+    expect(next.nodes.slice(1)).toEqual([
+      { id: 'n2', text: '銀河', depth: 1, origin: 'auto' },
+      { id: 'n3', text: '惑星', depth: 1, origin: 'auto' },
+    ])
+    expect(next.edges).toEqual([
+      { id: 'n1->n2', source: 'n1', target: 'n2' },
+      { id: 'n1->n3', source: 'n1', target: 'n3' },
+    ])
+  })
+
+  it('同じ id の再到着は無視する（冪等）', () => {
+    const root = applyBatch(empty(), {
+      parentId: null,
+      depth: 0,
+      nodes: [{ id: 'n1', text: '宇宙' }],
+    })
+    const once = applyBatch(root, { parentId: 'n1', depth: 1, nodes: [{ id: 'n2', text: '銀河' }] })
+    const twice = applyBatch(once, {
+      parentId: 'n1',
+      depth: 1,
+      nodes: [{ id: 'n2', text: '銀河' }],
+    })
+    expect(twice.nodes).toHaveLength(2)
+    expect(twice.edges).toHaveLength(1)
+  })
+})
+
 describe('useMindMapStore', () => {
   beforeEach(() => {
     useMindMapStore.getState().reset()
@@ -101,5 +161,34 @@ describe('useMindMapStore', () => {
     expect(s.mode).toBe('manual')
     expect(s.settings.countPerNode).toBe(8)
     expect(s.settings.maxDepth).toBe(3)
+  })
+
+  it('applyExpansionBatch でストアに root→子が積み上がる', () => {
+    const store = useMindMapStore.getState()
+    store.applyExpansionBatch({ parentId: null, depth: 0, nodes: [{ id: 'n1', text: '宇宙' }] })
+    store.applyExpansionBatch({ parentId: 'n1', depth: 1, nodes: [{ id: 'n2', text: '銀河' }] })
+    const s = useMindMapStore.getState()
+    expect(s.nodes.map((n) => n.text)).toEqual(['宇宙', '銀河'])
+    expect(s.edges).toEqual([{ id: 'n1->n2', source: 'n1', target: 'n2' }])
+  })
+
+  it('clearMap はマップと停止理由を消すが設定・モードは保持する', () => {
+    const store = useMindMapStore.getState()
+    store.setMode('manual')
+    store.updateSettings({ countPerNode: 9 })
+    store.applyExpansionBatch({ parentId: null, depth: 0, nodes: [{ id: 'n1', text: '宇宙' }] })
+    store.setStopReason('max_nodes')
+
+    store.clearMap()
+    const s = useMindMapStore.getState()
+    expect(s.nodes).toEqual([])
+    expect(s.stopReason).toBeNull()
+    expect(s.mode).toBe('manual') // 保持
+    expect(s.settings.countPerNode).toBe(9) // 保持
+  })
+
+  it('setStopReason が反映される', () => {
+    useMindMapStore.getState().setStopReason('max_depth')
+    expect(useMindMapStore.getState().stopReason).toBe('max_depth')
   })
 })

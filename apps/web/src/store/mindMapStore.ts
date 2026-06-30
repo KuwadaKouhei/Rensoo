@@ -6,6 +6,7 @@ import { create } from 'zustand'
 import {
   DEFAULT_GENERATION_SETTINGS,
   type AssociationWord,
+  type ExpansionStopReason,
   type GenerationSettings,
   type MindMapEdge,
   type MindMapNode,
@@ -72,6 +73,48 @@ export const appendAssociations = (
   return { nodes, edges, seq }
 }
 
+/** 自走展開（SSE）の1バッチ。サーバー採番 id を持つ（DESIGN §6.2・expansionSchema）。 */
+export interface ExpansionBatch {
+  /** null は起点バッチ（depth=0, origin=root）。 */
+  readonly parentId: string | null
+  readonly depth: number
+  readonly nodes: readonly { readonly id: string; readonly text: string }[]
+}
+
+/**
+ * SSE バッチをマップへ取り込む純粋関数（自走展開・AC-3）。サーバー採番 id をそのまま使う。
+ * - 起点バッチ（parentId=null）はマップを置き換える（origin=root）。
+ * - 子バッチは未知 id のみ追加し、親→子エッジを張る（origin=auto）。id 重複は無視（冪等）。
+ *   親はサーバーが必ず先に送る前提（BFS は depth 昇順）なので孤立エッジは生じない。
+ */
+export const applyBatch = (data: MapData, batch: ExpansionBatch): MapData => {
+  if (batch.parentId === null) {
+    const nodes: MindMapNode[] = batch.nodes.map((n) => ({
+      id: n.id,
+      text: n.text,
+      depth: batch.depth,
+      origin: 'root',
+    }))
+    return { nodes, edges: [], seq: data.seq }
+  }
+
+  const parentId = batch.parentId
+  const existingIds = new Set(data.nodes.map((n) => n.id))
+  const nodes: MindMapNode[] = [...data.nodes]
+  const edges: MindMapEdge[] = [...data.edges]
+
+  for (const n of batch.nodes) {
+    if (existingIds.has(n.id)) {
+      continue
+    }
+    existingIds.add(n.id)
+    nodes.push({ id: n.id, text: n.text, depth: batch.depth, origin: 'auto' })
+    edges.push({ id: `${parentId}->${n.id}`, source: parentId, target: n.id })
+  }
+
+  return { nodes, edges, seq: data.seq }
+}
+
 /** ストアの状態とアクション（UI はこのアクション経由でのみ状態を変更する・DESIGN §2.3）。 */
 export interface MindMapStore {
   readonly nodes: readonly MindMapNode[]
@@ -81,11 +124,15 @@ export interface MindMapStore {
   readonly mode: ExpansionMode
   readonly status: MapStatus
   readonly errorMessage: string | null
+  /** 直近の自走展開の停止理由（未停止/未実行は null）。 */
+  readonly stopReason: ExpansionStopReason | null
 
   /** 起点キーワードでマップを作り直す（既存マップは破棄）。 */
   startNewMap: (keyword: string) => void
   /** 親ノードへ連想語を子として取り込む。 */
   appendChildren: (parentId: string, words: readonly AssociationWord[]) => void
+  /** 自走展開の SSE バッチを取り込む（サーバー採番 id）。 */
+  applyExpansionBatch: (batch: ExpansionBatch) => void
   /** 展開モード（自動/手動）を切り替える。 */
   setMode: (mode: ExpansionMode) => void
   /** 生成設定を部分更新する。 */
@@ -94,6 +141,10 @@ export interface MindMapStore {
   setStatus: (status: MapStatus) => void
   /** エラーメッセージを設定し status を 'error' にする。 */
   setError: (message: string) => void
+  /** 停止理由を設定する。 */
+  setStopReason: (reason: ExpansionStopReason | null) => void
+  /** マップ（ノード/エッジ/進行状態）だけ初期化する。設定・モードは保持する。 */
+  clearMap: () => void
   /** すべて初期状態に戻す。 */
   reset: () => void
 }
@@ -106,6 +157,7 @@ interface InitialFields {
   readonly mode: ExpansionMode
   readonly status: MapStatus
   readonly errorMessage: string | null
+  readonly stopReason: ExpansionStopReason | null
 }
 
 const initialFields = (): InitialFields => ({
@@ -116,6 +168,17 @@ const initialFields = (): InitialFields => ({
   mode: 'auto',
   status: 'idle',
   errorMessage: null,
+  stopReason: null,
+})
+
+/** マップ本体のみ初期化する差分（設定・モードは保持）。 */
+const clearedMapFields = () => ({
+  nodes: [],
+  edges: [],
+  seq: 0,
+  status: 'idle' as const,
+  errorMessage: null,
+  stopReason: null,
 })
 
 export const useMindMapStore = create<MindMapStore>((set, get) => ({
@@ -132,6 +195,12 @@ export const useMindMapStore = create<MindMapStore>((set, get) => ({
     set({ nodes: next.nodes, edges: next.edges, seq: next.seq })
   },
 
+  applyExpansionBatch: (batch) => {
+    const { nodes, edges, seq } = get()
+    const next = applyBatch({ nodes, edges, seq }, batch)
+    set({ nodes: next.nodes, edges: next.edges, seq: next.seq })
+  },
+
   setMode: (mode) => set({ mode }),
 
   updateSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
@@ -140,6 +209,10 @@ export const useMindMapStore = create<MindMapStore>((set, get) => ({
     set({ status, errorMessage: status === 'error' ? get().errorMessage : null }),
 
   setError: (message) => set({ status: 'error', errorMessage: message }),
+
+  setStopReason: (reason) => set({ stopReason: reason }),
+
+  clearMap: () => set({ ...clearedMapFields() }),
 
   reset: () => set({ ...initialFields() }),
 }))
