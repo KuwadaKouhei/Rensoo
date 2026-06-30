@@ -173,7 +173,7 @@
   error イベントで日本語エラー＋再試行（AC-12）。
 - **依存タスク**: T07, T08
 - **推奨ブランチ名**: `feature/T09-web-expansion-stream`
-- **状態**: todo
+- **状態**: done（SSE 受信クライアント `streamExpansion`（fetch ストリームを手動パース＝POST+ボディ対応、各フレームを shared Zod で検証して振り分け、AbortSignal で中断＝接続クローズ、非2xx は ApiError）、フロー `startExpansion`（clearMap→生成中→node-batch 取り込み→stopped で停止理由＋idle／error は日本語で error 維持／停止で stopped 未受信なら user_stop 確定）、`useExpansionStream` フック（AbortController で start/stop・アンマウントで abort）、ストアに純粋関数 `applyBatch`（サーバー採番 id・冪等・親→子エッジ）＋`applyExpansionBatch`/`setStopReason`/`clearMap`/`stopReason` を追加、`MindMapToolbar` を自走展開＋停止ボタン＋停止理由の日本語表示に更新。**テスト**: store applyBatch 3＋store アクション 3／runExpansionFlow 6（AC-3 段階描画・AC-2 設定追従・AC-12 error 維持・AC-6 user_stop 確定・409・空入力）／expansion.ts 6（SSE 解析・error・409・中断正常終了・スキーマ不一致無視・NETWORK）。4ゲート green（型/Lint/Vitest shared9・api41・**web47**/ビルド）。**マイルストーン M2 の中核（自動連鎖が画面で広がる）が成立**。自動/手動トグル UI と手動ノードクリック展開は T10。SSE 接続クローズの実ブラウザ停止確認は T13/手動に橋渡し）
 
 ### T10: 自動/手動トグル＋手動展開（連鎖しない）
 

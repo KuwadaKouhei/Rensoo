@@ -54,6 +54,12 @@ body {
   color: #b00020;
 }
 
+.mindmap-toolbar__notice {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+}
+
 .generation-settings__field {
   display: flex;
   flex-direction: column;
