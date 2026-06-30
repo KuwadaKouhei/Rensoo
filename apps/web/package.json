@@ -12,7 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^1.1.4",
     "@rensoo/shared": "workspace:*",
+    "@xyflow/react": "^12.3.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.1",
