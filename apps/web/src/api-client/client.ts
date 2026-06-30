@@ -33,8 +33,17 @@ export const apiFetch = async (path: string, init?: RequestInit): Promise<unknow
     throw errorFromResponse(res.status, body)
   }
 
+  // 204 No Content や空ボディ（例: DELETE）は JSON パースせず undefined を返す。
+  if (res.status === 204) {
+    return undefined
+  }
+  const text = await res.text()
+  if (text.length === 0) {
+    return undefined
+  }
+
   try {
-    return (await res.json()) as unknown
+    return JSON.parse(text) as unknown
   } catch (err) {
     throw invalidResponseError(err)
   }

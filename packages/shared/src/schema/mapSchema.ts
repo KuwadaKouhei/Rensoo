@@ -53,6 +53,25 @@ export const mapSummarySchema = z.object({
   updatedAt: z.string().min(1),
 })
 
+/** `GET /api/maps/:id` の応答（保存済みマップ本体）。フロントが受信検証して再編集に使う。 */
+export const savedMapSchema = z
+  .object({
+    id: z.string().min(1),
+    title: z.string().min(1).max(100),
+    nodes: z.array(mindMapNodeSchema),
+    edges: z.array(mindMapEdgeSchema),
+    settings: generationSettingsSchema,
+  })
+  .refine((data) => hasNoOrphanEdges(data.nodes, data.edges), {
+    message: ORPHAN_EDGE_MESSAGE,
+    path: ['edges'],
+  })
+
+/** マップ一覧 `GET /api/maps` の応答。 */
+export const mapListResponseSchema = z.object({
+  maps: z.array(mapSummarySchema),
+})
+
 /** DB に格納する snapshot JSONB の形状（version を持つ。将来のマイグレーション余地・DATABASE.md §1.4）。 */
 export const mindMapSnapshotSchema = z
   .object({
@@ -67,4 +86,6 @@ export const mindMapSnapshotSchema = z
 
 export type SaveMapRequest = z.infer<typeof saveMapRequestSchema>
 export type MapSummary = z.infer<typeof mapSummarySchema>
+export type SavedMap = z.infer<typeof savedMapSchema>
+export type MapListResponse = z.infer<typeof mapListResponseSchema>
 export type MindMapSnapshotShape = z.infer<typeof mindMapSnapshotSchema>
