@@ -4,6 +4,8 @@ import type { AssociationProvider } from '@rensoo/shared'
 import { handleError } from './errors.js'
 import { registerHealthRoutes } from './routes/health.routes.js'
 import { registerAssociationRoutes } from './routes/associations.routes.js'
+import { registerExpansionRoutes } from './routes/expansion.routes.js'
+import { InMemoryExpansionLock } from '../app/expansion/expansionLock.js'
 
 export interface AppDeps {
   readonly associationProvider: AssociationProvider
@@ -20,8 +22,12 @@ export const createApp = (deps: AppDeps): Hono => {
 
   app.use('/api/*', cors({ origin: deps.corsOrigin ?? '*' }))
 
+  // 自走展開の多重実行抑制ロック（アプリインスタンス単位のインメモリ）。
+  const expansionLock = new InMemoryExpansionLock()
+
   registerHealthRoutes(app)
   registerAssociationRoutes(app, deps.associationProvider)
+  registerExpansionRoutes(app, deps.associationProvider, expansionLock)
 
   app.onError(handleError)
 

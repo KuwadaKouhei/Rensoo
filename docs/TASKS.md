@@ -158,7 +158,7 @@
   サーバー側で常に効くことを確認（NFR-3）。
 - **依存タスク**: T04
 - **推奨ブランチ名**: `feature/T08-expansion-orchestrator-sse`
-- **状態**: todo
+- **状態**: done（停止判定純粋関数 `shouldStopExpansion`（depth 優先・上限ちょうど境界）、BFS オーケストレータ `runExpansion`（キュー投入前に停止判定／`normalizeAssociations` 整形／マップ全体のグローバル重複除去／上限を超えて生成しない／中断 `signal.aborted` で追加 LLM 呼び出しせず user_stop／失敗は SSE error＋日本語・内部情報なし）、レート制御 `withRetry`（再試行可能エラーのみ指数バックオフ・上限・sleep 注入）、多重実行ロック `InMemoryExpansionLock`、SSE ルート `POST /api/expansion/stream`（Zod 検証→ロック取得（多重実行 409）→`streamSSE` で node-batch/progress/stopped/error 送出・`onAbort` で中断）を実装。共有契約 `expansionSchema`（リクエスト＋SSE イベント＋イベント名）を追加。**テスト**: shouldStopExpansion 7（最重点境界値）／rateLimiter 6／orchestrator 8（AC-3 停止・NFR-3 上限厳守・AC-6 中断で LLM 非呼出・重複除去・error 写像）／SSE ルート 4（イベント列・400・409 多重実行・キー独立）。4ゲート green（型/Lint/Vitest shared9・**api41**・web29/ビルド）。**実 LLM での自走展開 PoC（コスト/コール数/p95/429）は `ANTHROPIC_API_KEY` のある環境が必要なため未実施＝鍵のある環境で実行し FEASIBILITY に追記**。node-batch はフロント整合のためサーバー採番 id を含める軽微な具体化（schema に明記）。SSE 接続クローズによる実停止のブラウザ E2E は T13/手動確認に橋渡し）
 
 ### T09: フロント自走展開（SSE 受信・段階描画・停止）
 
