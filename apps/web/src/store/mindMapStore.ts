@@ -215,6 +215,8 @@ export interface MindMapStore {
   readonly mode: ExpansionMode
   readonly status: MapStatus
   readonly errorMessage: string | null
+  /** 直近のエラーが再試行可能か（再試行ボタンの表示制御・AC-12）。 */
+  readonly errorRetryable: boolean
   /** 直近の自走展開の停止理由（未停止/未実行は null）。 */
   readonly stopReason: ExpansionStopReason | null
   /** 編集対象として選択中のノード id（未選択は null）。 */
@@ -248,8 +250,8 @@ export interface MindMapStore {
   updateSettings: (patch: Partial<GenerationSettings>) => void
   /** 進行状態を設定する（生成中はエラーをクリア）。 */
   setStatus: (status: MapStatus) => void
-  /** エラーメッセージを設定し status を 'error' にする。 */
-  setError: (message: string) => void
+  /** エラーメッセージを設定し status を 'error' にする（retryable 既定 true）。 */
+  setError: (message: string, retryable?: boolean) => void
   /** 停止理由を設定する。 */
   setStopReason: (reason: ExpansionStopReason | null) => void
   /** マップ（ノード/エッジ/進行状態）だけ初期化する。設定・モードは保持する。 */
@@ -266,6 +268,7 @@ interface InitialFields {
   readonly mode: ExpansionMode
   readonly status: MapStatus
   readonly errorMessage: string | null
+  readonly errorRetryable: boolean
   readonly stopReason: ExpansionStopReason | null
   readonly selectedNodeId: string | null
   readonly title: string
@@ -280,6 +283,7 @@ const initialFields = (): InitialFields => ({
   mode: 'auto',
   status: 'idle',
   errorMessage: null,
+  errorRetryable: true,
   stopReason: null,
   selectedNodeId: null,
   title: DEFAULT_TITLE,
@@ -293,6 +297,7 @@ const clearedMapFields = () => ({
   seq: 0,
   status: 'idle' as const,
   errorMessage: null,
+  errorRetryable: true,
   stopReason: null,
   selectedNodeId: null,
   title: DEFAULT_TITLE,
@@ -381,7 +386,8 @@ export const useMindMapStore = create<MindMapStore>((set, get) => ({
   setStatus: (status) =>
     set({ status, errorMessage: status === 'error' ? get().errorMessage : null }),
 
-  setError: (message) => set({ status: 'error', errorMessage: message }),
+  setError: (message, retryable = true) =>
+    set({ status: 'error', errorMessage: message, errorRetryable: retryable }),
 
   setStopReason: (reason) => set({ stopReason: reason }),
 

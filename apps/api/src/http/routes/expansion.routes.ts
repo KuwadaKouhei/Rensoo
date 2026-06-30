@@ -2,7 +2,7 @@ import type { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { zValidator } from '@hono/zod-validator'
 import { EXPANSION_EVENT, expansionRequestSchema, type AssociationProvider } from '@rensoo/shared'
-import type { ErrorResponseBody } from '../errors.js'
+import { errorBody } from '../errorResponses.js'
 import type { AuthEnv } from '../middleware/auth.js'
 import { runExpansion, type ExpansionEvent } from '../../app/expansion/expansionOrchestrator.js'
 import type { InMemoryExpansionLock } from '../../app/expansion/expansionLock.js'
@@ -36,14 +36,12 @@ export const registerExpansionRoutes = (
     '/api/expansion/stream',
     zValidator('json', expansionRequestSchema, (result, c) => {
       if (!result.success) {
-        const body: ErrorResponseBody = {
-          error: {
-            code: 'VALIDATION',
+        return c.json(
+          errorBody('VALIDATION', {
             message: '入力が正しくありません。キーワードと設定を確認してください。',
-            retryable: false,
-          },
-        }
-        return c.json(body, 400)
+          }),
+          400,
+        )
       }
       return undefined
     }),
@@ -53,14 +51,12 @@ export const registerExpansionRoutes = (
 
       // 多重実行抑制: 実行中の同一マップ（MVP はキーワード）には 409 を返す（NFR-4）。
       if (!lock.tryAcquire(key)) {
-        const body: ErrorResponseBody = {
-          error: {
-            code: 'CONFLICT',
+        return c.json(
+          errorBody('CONFLICT', {
             message: 'このキーワードの展開は実行中です。完了後に再試行してください。',
-            retryable: true,
-          },
-        }
-        return c.json(body, 409)
+          }),
+          409,
+        )
       }
 
       return streamSSE(c, async (stream) => {

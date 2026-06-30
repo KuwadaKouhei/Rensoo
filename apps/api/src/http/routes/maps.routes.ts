@@ -4,21 +4,14 @@
 import type { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { saveMapRequestSchema, type SaveMindMapInput } from '@rensoo/shared'
-import type { ErrorResponseBody } from '../errors.js'
+import { errorBody } from '../errorResponses.js'
 import { requireAuth, type AuthEnv, type JwtVerifier } from '../middleware/auth.js'
 import type { MindMapRepositoryFactory } from '../../infra/repositories/supabaseMindMapRepository.js'
 
-const notFound = (): ErrorResponseBody => ({
-  error: { code: 'NOT_FOUND', message: 'マップが見つかりません。', retryable: false },
-})
+const notFound = () => errorBody('NOT_FOUND', { message: 'マップが見つかりません。' })
 
-const validationError = (): ErrorResponseBody => ({
-  error: {
-    code: 'VALIDATION',
-    message: '保存内容が正しくありません。入力を確認してください。',
-    retryable: false,
-  },
-})
+const validationError = () =>
+  errorBody('VALIDATION', { message: '保存内容が正しくありません。入力を確認してください。' })
 
 /**
  * 保存系ルートを登録する。requireAuth(verifier) で全エンドポイントを認証必須にし、
