@@ -12,6 +12,9 @@ export default defineConfig({
         manualChunks: {
           'vendor-flow': ['@xyflow/react', '@dagrejs/dagre'],
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // Supabase は重い（~210kB）。別チャンクに分離してキャッシュ効率を上げる。
+          // さらなる初期ロード削減（ゲスト時の遅延ロード）は将来の最適化余地。
+          'vendor-supabase': ['@supabase/supabase-js'],
         },
       },
     },

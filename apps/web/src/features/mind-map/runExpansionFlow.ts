@@ -20,6 +20,10 @@ export const STOP_REASON_MESSAGE: Record<ExpansionStopReason, string> = {
 
 const FALLBACK_ERROR_MESSAGE = '自走展開に失敗しました。しばらくして再試行してください。'
 
+// 実行世代カウンタ。新しい開始ごとに増やし、古い実行の遅延した状態反映を無効化する
+// （「作成」連打時に、中断された前実行の後始末が新実行の generating を巻き戻す競合を防ぐ）。
+let runGeneration = 0
+
 export interface RunExpansionFlowDeps {
   /** SSE クライアント（既定は実装。テストでスタブ注入）。 */
   readonly streamExpansion?: typeof defaultStreamExpansion
@@ -39,6 +43,10 @@ export const startExpansion = async (
   deps: RunExpansionFlowDeps = {},
 ): Promise<void> => {
   const stream = deps.streamExpansion ?? defaultStreamExpansion
+  // この実行の世代。以後、ストアへ書く前に最新実行かを確認する。
+  const myGeneration = (runGeneration += 1)
+  const isCurrent = (): boolean => myGeneration === runGeneration
+
   const text = keyword.trim()
   if (!text) {
     useMindMapStore.getState().setError('キーワードを入力してください。')
@@ -51,8 +59,11 @@ export const startExpansion = async (
   const settings = useMindMapStore.getState().settings
 
   const handlers: ExpansionStreamHandlers = {
-    onNodeBatch: (batch) => useMindMapStore.getState().applyExpansionBatch(batch),
+    onNodeBatch: (batch) => {
+      if (isCurrent()) useMindMapStore.getState().applyExpansionBatch(batch)
+    },
     onStopped: (stopped) => {
+      if (!isCurrent()) return
       const current = useMindMapStore.getState()
       current.setStopReason(stopped.reason)
       // error 受信済みのときは error 表示を維持する（stopped で上書きしない）。
@@ -60,11 +71,15 @@ export const startExpansion = async (
         current.setStatus('idle')
       }
     },
-    onError: (error) => useMindMapStore.getState().setError(error.message, error.retryable),
+    onError: (error) => {
+      if (isCurrent()) useMindMapStore.getState().setError(error.message, error.retryable)
+    },
   }
 
   try {
     await stream({ rootInput: text, settings }, handlers, deps.signal)
+    // 新しい実行が始まっていれば、この実行の後始末で状態を巻き戻さない。
+    if (!isCurrent()) return
     // 接続クローズ（停止）で stopped 未受信なら user_stop として確定する。
     const after = useMindMapStore.getState()
     if (after.status === 'generating') {
@@ -72,6 +87,7 @@ export const startExpansion = async (
       after.setStatus('idle')
     }
   } catch (err) {
+    if (!isCurrent()) return
     const message = err instanceof ApiError ? err.message : FALLBACK_ERROR_MESSAGE
     const retryable = err instanceof ApiError ? err.retryable : true
     useMindMapStore.getState().setError(message, retryable)

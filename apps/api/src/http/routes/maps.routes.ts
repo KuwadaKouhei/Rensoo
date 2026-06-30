@@ -4,7 +4,7 @@
 import type { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { saveMapRequestSchema, type SaveMindMapInput } from '@rensoo/shared'
-import { errorBody } from '../errorResponses.js'
+import { AppError, errorBody } from '../errorResponses.js'
 import { requireAuth, type AuthEnv, type JwtVerifier } from '../middleware/auth.js'
 import type { MindMapRepositoryFactory } from '../../infra/repositories/supabaseMindMapRepository.js'
 
@@ -29,8 +29,9 @@ export const registerMapsRoutes = (
     const userId = c.get('userId')
     const token = c.get('token')
     // requireAuth 通過後は必ず存在するが、型のため明示チェック（握りつぶさない）。
+    // 万一欠落していれば 401 として一貫写像する（汎用 500 にしない）。
     if (!userId || !token) {
-      throw new Error('認証コンテキストが不正です')
+      throw new AppError('UNAUTHORIZED', '認証情報が無効です。再度ログインしてください。')
     }
     return { userId, repo: repositoryFactory.forUser(token) }
   }
