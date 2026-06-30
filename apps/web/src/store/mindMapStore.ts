@@ -115,6 +115,93 @@ export const applyBatch = (data: MapData, batch: ExpansionBatch): MapData => {
   return { nodes, edges, seq: data.seq }
 }
 
+/** 既存 id と衝突しない新しいノード id を採番する（SSE 由来 id との混在でも安全）。 */
+const nextFreshId = (existing: ReadonlySet<string>, seq: number): { id: string; seq: number } => {
+  let s = seq
+  let id = `n${s + 1}`
+  while (existing.has(id)) {
+    s += 1
+    id = `n${s + 1}`
+  }
+  return { id, seq: s + 1 }
+}
+
+/**
+ * 親ノードに手動ノードを1つ追加する純粋関数（FR-15）。origin='manual'。
+ * - 親が無ければ throw（孤立エッジを作らない）。空テキストは throw。
+ * - 既存と同テキストでも手動追加は許容する（ユーザーの明示操作を尊重）。
+ */
+export const addChildNode = (data: MapData, parentId: string, rawText: string): MapData => {
+  const parent = data.nodes.find((n) => n.id === parentId)
+  if (!parent) {
+    throw new Error(`親ノードが見つかりません: ${parentId}`)
+  }
+  const text = rawText.trim()
+  if (!text) {
+    throw new Error('ノードのテキストが空です')
+  }
+
+  const existing = new Set(data.nodes.map((n) => n.id))
+  const { id, seq } = nextFreshId(existing, data.seq)
+  const nodes: MindMapNode[] = [
+    ...data.nodes,
+    { id, text, depth: parent.depth + 1, origin: 'manual' },
+  ]
+  const edges: MindMapEdge[] = [
+    ...data.edges,
+    { id: `${parentId}->${id}`, source: parentId, target: id },
+  ]
+  return { nodes, edges, seq }
+}
+
+/** ノードのテキストを編集する純粋関数（FR-16）。空テキストは throw。未知ノードは throw。 */
+export const editNodeText = (data: MapData, nodeId: string, rawText: string): MapData => {
+  const text = rawText.trim()
+  if (!text) {
+    throw new Error('ノードのテキストが空です')
+  }
+  if (!data.nodes.some((n) => n.id === nodeId)) {
+    throw new Error(`ノードが見つかりません: ${nodeId}`)
+  }
+  const nodes = data.nodes.map((n) => (n.id === nodeId ? { ...n, text } : n))
+  return { nodes, edges: data.edges, seq: data.seq }
+}
+
+/**
+ * ノードを削除する純粋関数（FR-17 / AC-7）。対象ノードとその子孫をまとめて削除し、
+ * 削除されたノードに接続する全エッジを除去する＝**孤立エッジも孤立ノードも残さない**。
+ */
+export const removeNodeCascade = (data: MapData, nodeId: string): MapData => {
+  if (!data.nodes.some((n) => n.id === nodeId)) {
+    return data
+  }
+
+  // 親→子の隣接を作り、対象から到達できる子孫を BFS で集める。
+  const childrenOf = new Map<string, string[]>()
+  for (const edge of data.edges) {
+    const list = childrenOf.get(edge.source) ?? []
+    list.push(edge.target)
+    childrenOf.set(edge.source, list)
+  }
+
+  const removeSet = new Set<string>([nodeId])
+  const queue = [nodeId]
+  while (queue.length > 0) {
+    const current = queue.shift()!
+    for (const child of childrenOf.get(current) ?? []) {
+      if (!removeSet.has(child)) {
+        removeSet.add(child)
+        queue.push(child)
+      }
+    }
+  }
+
+  const nodes = data.nodes.filter((n) => !removeSet.has(n.id))
+  // 削除ノードを source/target いずれかに持つエッジを除去（孤立エッジ禁止）。
+  const edges = data.edges.filter((e) => !removeSet.has(e.source) && !removeSet.has(e.target))
+  return { nodes, edges, seq: data.seq }
+}
+
 /** ストアの状態とアクション（UI はこのアクション経由でのみ状態を変更する・DESIGN §2.3）。 */
 export interface MindMapStore {
   readonly nodes: readonly MindMapNode[]
@@ -126,6 +213,8 @@ export interface MindMapStore {
   readonly errorMessage: string | null
   /** 直近の自走展開の停止理由（未停止/未実行は null）。 */
   readonly stopReason: ExpansionStopReason | null
+  /** 編集対象として選択中のノード id（未選択は null）。 */
+  readonly selectedNodeId: string | null
 
   /** 起点キーワードでマップを作り直す（既存マップは破棄）。 */
   startNewMap: (keyword: string) => void
@@ -133,6 +222,14 @@ export interface MindMapStore {
   appendChildren: (parentId: string, words: readonly AssociationWord[]) => void
   /** 自走展開の SSE バッチを取り込む（サーバー採番 id）。 */
   applyExpansionBatch: (batch: ExpansionBatch) => void
+  /** 親ノードに手動ノードを追加する（FR-15）。 */
+  addChildNode: (parentId: string, text: string) => void
+  /** ノードのテキストを編集する（FR-16）。 */
+  editNode: (nodeId: string, text: string) => void
+  /** ノードを削除する（子孫・孤立エッジも除去・FR-17/AC-7）。 */
+  removeNode: (nodeId: string) => void
+  /** 編集対象ノードを選択する（null で選択解除）。 */
+  selectNode: (nodeId: string | null) => void
   /** 展開モード（自動/手動）を切り替える。 */
   setMode: (mode: ExpansionMode) => void
   /** 生成設定を部分更新する。 */
@@ -158,6 +255,7 @@ interface InitialFields {
   readonly status: MapStatus
   readonly errorMessage: string | null
   readonly stopReason: ExpansionStopReason | null
+  readonly selectedNodeId: string | null
 }
 
 const initialFields = (): InitialFields => ({
@@ -169,6 +267,7 @@ const initialFields = (): InitialFields => ({
   status: 'idle',
   errorMessage: null,
   stopReason: null,
+  selectedNodeId: null,
 })
 
 /** マップ本体のみ初期化する差分（設定・モードは保持）。 */
@@ -179,6 +278,7 @@ const clearedMapFields = () => ({
   status: 'idle' as const,
   errorMessage: null,
   stopReason: null,
+  selectedNodeId: null,
 })
 
 export const useMindMapStore = create<MindMapStore>((set, get) => ({
@@ -200,6 +300,34 @@ export const useMindMapStore = create<MindMapStore>((set, get) => ({
     const next = applyBatch({ nodes, edges, seq }, batch)
     set({ nodes: next.nodes, edges: next.edges, seq: next.seq })
   },
+
+  addChildNode: (parentId, text) => {
+    const { nodes, edges, seq } = get()
+    const next = addChildNode({ nodes, edges, seq }, parentId, text)
+    set({ nodes: next.nodes, edges: next.edges, seq: next.seq })
+  },
+
+  editNode: (nodeId, text) => {
+    const { nodes, edges, seq } = get()
+    const next = editNodeText({ nodes, edges, seq }, nodeId, text)
+    set({ nodes: next.nodes, edges: next.edges, seq: next.seq })
+  },
+
+  removeNode: (nodeId) => {
+    const { nodes, edges, seq } = get()
+    const next = removeNodeCascade({ nodes, edges, seq }, nodeId)
+    // 削除したノードを選択中なら選択解除する。
+    const selectedNodeId = get().selectedNodeId
+    const stillExists = next.nodes.some((n) => n.id === selectedNodeId)
+    set({
+      nodes: next.nodes,
+      edges: next.edges,
+      seq: next.seq,
+      selectedNodeId: stillExists ? selectedNodeId : null,
+    })
+  },
+
+  selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
   setMode: (mode) => set({ mode }),
 

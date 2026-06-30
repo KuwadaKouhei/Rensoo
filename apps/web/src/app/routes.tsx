@@ -4,21 +4,23 @@
 import { Route, Routes } from 'react-router-dom'
 import { MindMapCanvas } from '../features/mind-map/MindMapCanvas'
 import { MindMapToolbar } from '../features/mind-map/MindMapToolbar'
-import { expandNode } from '../features/mind-map/expandNode'
+import { NodeEditPopover } from '../features/mind-map/NodeEditPopover'
 import { GenerationSettingsPanel } from '../features/generation-settings/GenerationSettingsPanel'
+import { useMindMapStore } from '../store/mindMapStore'
 
 /**
  * ホーム（マップ編集画面）。全画面の描画キャンバスに、操作 UI（入力・作成・件数設定・モード）を重ねる。
  * キーワードを入力して「作成」すると連想マップが表示・展開される（AC-1,2）。
- * ノードクリックは手動展開（手動モードのみ作用・連鎖しない・AC-4）。
+ * ノードクリックでそのノードを選択し、編集ポップオーバー（展開・追加・編集・削除）を開く（AC-4,7）。
  */
 const HomePage = () => (
   <main className="map-screen">
     <div className="map-screen__overlay">
       <MindMapToolbar />
       <GenerationSettingsPanel />
+      <NodeEditPopover />
     </div>
-    <MindMapCanvas onNodeSelect={(id) => void expandNode(id)} />
+    <MindMapCanvas onNodeSelect={(id) => useMindMapStore.getState().selectNode(id)} />
   </main>
 )
 
