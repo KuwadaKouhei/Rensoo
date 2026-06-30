@@ -3,6 +3,10 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createApp } from './http/app.js'
 import { createJwksVerifier, type JwtVerifier } from './http/middleware/auth.js'
 import { ClaudeAssociationProvider } from './infra/providers/claudeAssociationProvider.js'
+import {
+  createSupabaseRepositoryFactory,
+  type MindMapRepositoryFactory,
+} from './infra/repositories/supabaseMindMapRepository.js'
 
 // 起動時の DI 配線（実装の選択はこの1箇所に集約・DESIGN §2.3）。
 // API キーはサーバー環境変数のみで扱い、フロントには出さない（AC-13/NFR-5）。.env ファイルは読まない。
@@ -28,10 +32,18 @@ const jwtVerifier: JwtVerifier | undefined = supabaseUrl
     })
   : undefined
 
+// 保存系（RLS 引き継ぎ）。SUPABASE_URL と SUPABASE_ANON_KEY が揃えば有効化する。
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
+const repositoryFactory: MindMapRepositoryFactory | undefined =
+  supabaseUrl && supabaseAnonKey
+    ? createSupabaseRepositoryFactory({ url: supabaseUrl, anonKey: supabaseAnonKey })
+    : undefined
+
 const app = createApp({
   associationProvider,
   corsOrigin: process.env.WEB_ORIGIN,
   jwtVerifier,
+  repositoryFactory,
 })
 
 const port = Number(process.env.PORT ?? 8787)
