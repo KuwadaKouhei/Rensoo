@@ -6,6 +6,7 @@ import { MindMapCanvas } from '../features/mind-map/MindMapCanvas'
 import { MindMapToolbar } from '../features/mind-map/MindMapToolbar'
 import { NodeEditPopover } from '../features/mind-map/NodeEditPopover'
 import { GenerationSettingsPanel } from '../features/generation-settings/GenerationSettingsPanel'
+import { LoginButton } from '../features/auth-save/LoginButton'
 import { useMindMapStore } from '../store/mindMapStore'
 
 /**
@@ -16,6 +17,7 @@ import { useMindMapStore } from '../store/mindMapStore'
 const HomePage = () => (
   <main className="map-screen">
     <div className="map-screen__overlay">
+      <LoginButton />
       <MindMapToolbar />
       <GenerationSettingsPanel />
       <NodeEditPopover />

@@ -17,6 +17,7 @@
     "@hono/zod-validator": "^0.8.0",
     "@rensoo/shared": "workspace:*",
     "hono": "^4.6.0",
+    "jose": "^5.9.6",
     "zod": "^3.25.76"
   },
   "devDependencies": {

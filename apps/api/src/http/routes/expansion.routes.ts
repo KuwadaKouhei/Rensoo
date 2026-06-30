@@ -3,6 +3,7 @@ import { streamSSE } from 'hono/streaming'
 import { zValidator } from '@hono/zod-validator'
 import { EXPANSION_EVENT, expansionRequestSchema, type AssociationProvider } from '@rensoo/shared'
 import type { ErrorResponseBody } from '../errors.js'
+import type { AuthEnv } from '../middleware/auth.js'
 import { runExpansion, type ExpansionEvent } from '../../app/expansion/expansionOrchestrator.js'
 import type { InMemoryExpansionLock } from '../../app/expansion/expansionLock.js'
 
@@ -27,7 +28,7 @@ const toPayload = (event: ExpansionEvent): Record<string, unknown> => {
  * 接続クローズ（onAbort）で中断フラグを立て、追加の LLM 呼び出しを止める（AC-6）。
  */
 export const registerExpansionRoutes = (
-  app: Hono,
+  app: Hono<AuthEnv>,
   provider: AssociationProvider,
   lock: InMemoryExpansionLock,
 ): void => {

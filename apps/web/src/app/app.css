@@ -113,6 +113,21 @@ body {
   padding: 6px 8px;
 }
 
+.auth-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.auth-box__user {
+  color: #333;
+}
+
+.auth-box__error {
+  color: #b00020;
+}
+
 .generation-settings__field {
   display: flex;
   flex-direction: column;
