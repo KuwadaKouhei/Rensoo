@@ -39,9 +39,17 @@ const repositoryFactory: MindMapRepositoryFactory | undefined =
     ? createSupabaseRepositoryFactory({ url: supabaseUrl, anonKey: supabaseAnonKey })
     : undefined
 
+// CORS: WEB_ORIGIN 未設定だと全許可（'*'）にフォールバックする。本番では必ず指定する（フェイルオープン警告）。
+const webOrigin = process.env.WEB_ORIGIN
+if (!webOrigin) {
+  console.warn(
+    '[起動] WEB_ORIGIN が未設定です。CORS を全オリジン許可で起動します。本番では WEB_ORIGIN を必ず指定してください。',
+  )
+}
+
 const app = createApp({
   associationProvider,
-  corsOrigin: process.env.WEB_ORIGIN,
+  corsOrigin: webOrigin,
   jwtVerifier,
   repositoryFactory,
 })

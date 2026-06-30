@@ -113,4 +113,33 @@ describe('startExpansion', () => {
     expect(useMindMapStore.getState().status).toBe('error')
     expect(useMindMapStore.getState().nodes).toEqual([])
   })
+
+  it('「作成」連打: 古い実行の遅延した後始末が新実行の状態を巻き戻さない（競合ガード）', async () => {
+    // 1本目: 解決しない stream（中断される前実行を模す）。
+    let resolveFirst: (() => void) | undefined
+    const firstPending = new Promise<void>((r) => {
+      resolveFirst = r
+    })
+    const first = startExpansion('古い', { streamExpansion: () => firstPending })
+
+    // 2本目: 即時に完了し、新しいマップ（completed）を確定する。
+    await startExpansion('新しい', {
+      streamExpansion: driver((h) => {
+        h.onNodeBatch?.({ parentId: null, depth: 0, nodes: [{ id: 'n1', text: '新しい' }] })
+        h.onStopped?.({ reason: 'completed', totalNodes: 1 })
+      }),
+    })
+
+    // ここで2本目の結果が確定している。
+    expect(useMindMapStore.getState().nodes.map((n) => n.text)).toEqual(['新しい'])
+    expect(useMindMapStore.getState().stopReason).toBe('completed')
+
+    // 1本目の stream が今さら解決しても、古い実行は最新でないため状態を書き換えない。
+    resolveFirst?.()
+    await first
+    const s = useMindMapStore.getState()
+    expect(s.nodes.map((n) => n.text)).toEqual(['新しい']) // 巻き戻らない
+    expect(s.stopReason).toBe('completed') // user_stop で上書きされない
+    expect(s.status).toBe('idle')
+  })
 })

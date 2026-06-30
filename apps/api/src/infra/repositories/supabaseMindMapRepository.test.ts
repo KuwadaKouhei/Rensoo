@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { SaveMindMapInput } from '@rensoo/shared'
 import { SupabaseMindMapRepository } from './supabaseMindMapRepository'
 
-// Supabase の query builder を必要な呼び出しだけ模した fake。最後の操作とペイロードを記録する。
+// Supabase の query builder を必要な呼び出しだけ模した fake。最後の操作・ペイロード・eq 条件を記録する。
 interface FakeResult {
   data?: unknown
   error?: { message: string } | null
@@ -12,20 +12,20 @@ interface FakeResult {
 const createFakeClient = (results: {
   order?: FakeResult
   maybeSingle?: FakeResult
-  single?: FakeResult
   delete?: FakeResult
 }) => {
-  const calls: { op?: string; table?: string; payload?: unknown; eqId?: string } = {}
+  const calls: { op?: string; table?: string; payload?: unknown; eqs: Record<string, string> } = {
+    eqs: {},
+  }
 
   const builder = {
     select: () => builder,
-    eq: (_col: string, val: string) => {
-      calls.eqId = val
+    eq: (col: string, val: string) => {
+      calls.eqs[col] = val
       return builder
     },
     order: async () => results.order ?? { data: [], error: null },
     maybeSingle: async () => results.maybeSingle ?? { data: null, error: null },
-    single: async () => results.single ?? { data: null, error: null },
     insert: (payload: unknown) => {
       calls.op = 'insert'
       calls.payload = payload
@@ -38,13 +38,11 @@ const createFakeClient = (results: {
     },
     delete: () => {
       calls.op = 'delete'
-      return {
-        eq: async (_col: string, val: string) => {
-          calls.eqId = val
-          return results.delete ?? { error: null }
-        },
-      }
+      return builder
     },
+    // delete().eq().eq() は終端メソッドなしで await されるため thenable にする。
+    then: (onFulfilled: (v: FakeResult) => unknown, onRejected?: (e: unknown) => unknown) =>
+      Promise.resolve(results.delete ?? { error: null }).then(onFulfilled, onRejected),
   }
 
   const client = {
@@ -69,8 +67,8 @@ const input = (over: Partial<SaveMindMapInput> = {}): SaveMindMapInput => ({
 })
 
 describe('SupabaseMindMapRepository', () => {
-  it('list は行を MindMapSummary にマップする', async () => {
-    const { client } = createFakeClient({
+  it('list は行を MindMapSummary にマップし、owner_id で本人限定する', async () => {
+    const { client, calls } = createFakeClient({
       order: {
         data: [{ id: 'm1', title: 'A', updated_at: '2026-06-30T00:00:00Z' }],
         error: null,
@@ -79,10 +77,11 @@ describe('SupabaseMindMapRepository', () => {
     const repo = new SupabaseMindMapRepository(client)
     const result = await repo.list('userA')
     expect(result).toEqual([{ id: 'm1', title: 'A', updatedAt: '2026-06-30T00:00:00Z' }])
+    expect(calls.eqs.owner_id).toBe('userA')
   })
 
-  it('get は snapshot 行を MindMapSnapshot にマップし、無ければ null', async () => {
-    const { client } = createFakeClient({
+  it('get は snapshot 行を MindMapSnapshot にマップし、無ければ null（id＋owner_id で絞り込み）', async () => {
+    const { client, calls } = createFakeClient({
       maybeSingle: {
         data: {
           id: 'm1',
@@ -97,6 +96,8 @@ describe('SupabaseMindMapRepository', () => {
     const map = await repo.get('userA', 'm1')
     expect(map?.nodes).toHaveLength(1)
     expect(map?.title).toBe('A')
+    expect(calls.eqs.id).toBe('m1')
+    expect(calls.eqs.owner_id).toBe('userA')
 
     const { client: empty } = createFakeClient({ maybeSingle: { data: null, error: null } })
     expect(await new SupabaseMindMapRepository(empty).get('userA', 'zzz')).toBeNull()
@@ -104,7 +105,7 @@ describe('SupabaseMindMapRepository', () => {
 
   it('save（id なし）は insert で owner_id と root_keyword を設定する', async () => {
     const { client, calls } = createFakeClient({
-      single: { data: { id: 'new1', title: '宇宙の連想', updated_at: 't' }, error: null },
+      maybeSingle: { data: { id: 'new1', title: '宇宙の連想', updated_at: 't' }, error: null },
     })
     const repo = new SupabaseMindMapRepository(client)
     const summary = await repo.save('userA', input())
@@ -115,14 +116,24 @@ describe('SupabaseMindMapRepository', () => {
     expect(summary).toEqual({ id: 'new1', title: '宇宙の連想', updatedAt: 't' })
   })
 
-  it('save（id あり）は update で対象 id を指定する', async () => {
+  it('save（id あり）は update で id＋owner_id を指定する', async () => {
     const { client, calls } = createFakeClient({
-      single: { data: { id: 'm1', title: '改題', updated_at: 't' }, error: null },
+      maybeSingle: { data: { id: 'm1', title: '改題', updated_at: 't' }, error: null },
     })
     const repo = new SupabaseMindMapRepository(client)
     await repo.save('userA', input({ id: 'm1', title: '改題' }))
     expect(calls.op).toBe('update')
-    expect(calls.eqId).toBe('m1')
+    expect(calls.eqs.id).toBe('m1')
+    expect(calls.eqs.owner_id).toBe('userA')
+  })
+
+  it('save（id あり）で対象が無い（他人/不存在）と NOT_FOUND を投げる', async () => {
+    const { client } = createFakeClient({ maybeSingle: { data: null, error: null } })
+    const repo = new SupabaseMindMapRepository(client)
+    await expect(repo.save('userA', input({ id: 'other' }))).rejects.toMatchObject({
+      name: 'AppError',
+      code: 'NOT_FOUND',
+    })
   })
 
   it('DB エラーは握りつぶさず throw する', async () => {
@@ -131,11 +142,12 @@ describe('SupabaseMindMapRepository', () => {
     await expect(repo.list('userA')).rejects.toThrow('一覧の取得に失敗')
   })
 
-  it('remove は対象 id で delete する', async () => {
+  it('remove は id＋owner_id で delete する', async () => {
     const { client, calls } = createFakeClient({ delete: { error: null } })
     const repo = new SupabaseMindMapRepository(client)
     await repo.remove('userA', 'm1')
     expect(calls.op).toBe('delete')
-    expect(calls.eqId).toBe('m1')
+    expect(calls.eqs.id).toBe('m1')
+    expect(calls.eqs.owner_id).toBe('userA')
   })
 })

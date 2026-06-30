@@ -9,6 +9,9 @@ import type {
   MindMapSummary,
   SaveMindMapInput,
 } from '@rensoo/shared'
+// AppError は HTTP 非依存の軽量エラー担体（実行時に hono を引き込まない）。infra から投げ、
+// 上位の onError が一貫した応答へ写像する。
+import { AppError } from '../../http/errorResponses.js'
 
 const TABLE = 'mindmaps'
 
@@ -30,10 +33,12 @@ const deriveRootKeyword = (input: SaveMindMapInput): string => {
 export class SupabaseMindMapRepository implements MindMapRepository {
   constructor(private readonly client: SupabaseClient) {}
 
-  async list(_userId: string): Promise<readonly MindMapSummary[]> {
+  async list(userId: string): Promise<readonly MindMapSummary[]> {
     const { data, error } = await this.client
       .from(TABLE)
       .select('id, title, updated_at')
+      // RLS に加えアプリ層でも本人限定を明示（多層防御）。
+      .eq('owner_id', userId)
       .order('updated_at', { ascending: false })
     if (error) {
       throw new Error(`マップ一覧の取得に失敗しました: ${error.message}`)
@@ -45,11 +50,13 @@ export class SupabaseMindMapRepository implements MindMapRepository {
     }))
   }
 
-  async get(_userId: string, mapId: string): Promise<MindMapSnapshot | null> {
+  async get(userId: string, mapId: string): Promise<MindMapSnapshot | null> {
     const { data, error } = await this.client
       .from(TABLE)
       .select('id, title, settings, snapshot')
       .eq('id', mapId)
+      // RLS が本人限定の砦だが、アプリ層でも owner_id を明示して多層防御にする（RLS 失効時の保険）。
+      .eq('owner_id', userId)
       .maybeSingle()
     if (error) {
       throw new Error(`マップの取得に失敗しました: ${error.message}`)
@@ -72,7 +79,7 @@ export class SupabaseMindMapRepository implements MindMapRepository {
     const rootKeyword = deriveRootKeyword(input)
 
     if (input.id) {
-      // 上書き（本人のもののみ・RLS）。
+      // 上書き（本人のもののみ・RLS＋owner_id 明示）。
       const { data, error } = await this.client
         .from(TABLE)
         .update({
@@ -83,10 +90,15 @@ export class SupabaseMindMapRepository implements MindMapRepository {
           updated_at: new Date().toISOString(),
         })
         .eq('id', input.id)
+        .eq('owner_id', userId)
         .select('id, title, updated_at')
-        .single()
+        .maybeSingle()
       if (error) {
         throw new Error(`マップの保存に失敗しました: ${error.message}`)
+      }
+      // 0 行（他人の id / 不存在）は更新対象なし。500 ではなく 404 として一貫写像する。
+      if (!data) {
+        throw new AppError('NOT_FOUND', 'マップが見つかりません。')
       }
       return toSummary(data)
     }
@@ -102,15 +114,19 @@ export class SupabaseMindMapRepository implements MindMapRepository {
         snapshot,
       })
       .select('id, title, updated_at')
-      .single()
+      .maybeSingle()
     if (error) {
       throw new Error(`マップの作成に失敗しました: ${error.message}`)
+    }
+    if (!data) {
+      // insert は通常行を返す。null は想定外（RLS の insert ポリシー不一致など）。
+      throw new Error('マップの作成に失敗しました: 作成結果を取得できませんでした')
     }
     return toSummary(data)
   }
 
-  async remove(_userId: string, mapId: string): Promise<void> {
-    const { error } = await this.client.from(TABLE).delete().eq('id', mapId)
+  async remove(userId: string, mapId: string): Promise<void> {
+    const { error } = await this.client.from(TABLE).delete().eq('id', mapId).eq('owner_id', userId)
     if (error) {
       throw new Error(`マップの削除に失敗しました: ${error.message}`)
     }

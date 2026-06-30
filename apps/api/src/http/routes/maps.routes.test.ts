@@ -6,6 +6,7 @@ import type {
   SaveMindMapInput,
 } from '@rensoo/shared'
 import { createApp } from '../app'
+import { AppError } from '../errorResponses'
 import type { JwtVerifier } from '../middleware/auth'
 import type { MindMapRepositoryFactory } from '../../infra/repositories/supabaseMindMapRepository'
 
@@ -40,13 +41,23 @@ const createInMemoryRepo = () => {
       return snapshot
     },
     save: async (userId, input: SaveMindMapInput) => {
-      const id = input.id ?? `map-${(seq += 1)}`
-      const existing = store.get(id)
-      // RLS: 他人の id への上書きは行へ到達できない（0行）＝何もしないで本人扱いの新規にもしない。
-      if (existing && existing.owner !== userId) {
-        // 実 DB では update が0行で .single() がエラーになる。ここでは到達不能としてそのまま返す。
-        return { id, title: input.title, updatedAt: '2026-06-30T00:00:00Z' }
+      if (input.id) {
+        // 上書き: 本人の既存マップのみ。他人/不存在は RLS で 0 行＝NOT_FOUND（実 repo と同挙動）。
+        const existing = store.get(input.id)
+        if (!existing || existing.owner !== userId) {
+          throw new AppError('NOT_FOUND', 'マップが見つかりません。')
+        }
+        store.set(input.id, {
+          owner: userId,
+          id: input.id,
+          title: input.title,
+          nodes: input.nodes,
+          edges: input.edges,
+          settings: input.settings,
+        })
+        return { id: input.id, title: input.title, updatedAt: '2026-06-30T00:00:00Z' }
       }
+      const id = `map-${(seq += 1)}`
       store.set(id, {
         owner: userId,
         id,
@@ -163,6 +174,20 @@ describe('保存系 maps API（認証必須・RLS 模擬）', () => {
     // A からはまだ見える（B の削除は RLS で 0 行）。
     const aGet = await authed('tokenA', `/api/maps/${a.id}`)
     expect(aGet.status).toBe(200)
+  })
+
+  it('他人のマップ ID への上書き保存は 404（500 にしない・AC-11）', async () => {
+    const a = (await (
+      await authed('tokenA', '/api/maps', { method: 'POST', body: JSON.stringify(sampleBody()) })
+    ).json()) as { id: string }
+
+    const res = await authed('tokenB', '/api/maps', {
+      method: 'POST',
+      body: JSON.stringify(sampleBody({ id: a.id, title: '乗っ取り' })),
+    })
+    expect(res.status).toBe(404)
+    const json = (await res.json()) as { error: { code: string } }
+    expect(json.error.code).toBe('NOT_FOUND')
   })
 
   it('孤立エッジを含む保存は 400 VALIDATION（AC-7 と整合）', async () => {
