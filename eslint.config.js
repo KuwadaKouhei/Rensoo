@@ -27,6 +27,14 @@ export default tseslint.config(
         ...globals.browser,
       },
     },
+    rules: {
+      // `_` 接頭辞の引数/変数は意図的な未使用として許容（IF 準拠で使わない引数など）。
+      // rest 構文で取り出した兄弟プロパティの除外も許容（{ a, ...rest } で a を捨てる）。
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+    },
   },
   // 依存方向の強制（DIRECTORY_STRUCTURE §3.1）:
   // ドメイン中核（内側）は FW / SDK / UI を import しない。

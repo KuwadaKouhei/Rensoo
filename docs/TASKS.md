@@ -226,7 +226,7 @@
   「自分のマップは一覧/取得/削除できる」「他人のマップは取得不可＝404/一覧に出ない」（AC-11）、保存→再取得で再編集可（AC-10）。
 - **依存タスク**: T03, T12
 - **推奨ブランチ名**: `feature/T13-maps-crud-repository`
-- **状態**: todo
+- **状態**: done（`SupabaseMindMapRepository`（**ユーザー JWT 引き継ぎクライアント**＝`global.headers.Authorization` で RLS を効かせ `service_role` 不使用／list・get(null→404)・save(id 有無で update/insert 分岐・owner_id 明示・root_keyword は起点ノードから導出)・remove／DB エラーは握りつぶさず throw）と `createSupabaseRepositoryFactory`（リクエストごとに JWT バインド）を実装。保存系ルート `maps.routes`（`GET /api/maps`・`GET /api/maps/:id`・`POST /api/maps`・`DELETE /api/maps/:id`、全て `requireAuth`、保存前に `saveMapRequestSchema` で**孤立エッジ禁止**を Zod 検証、他人/不存在は 404、削除は 204）を `createApp` に DI 配線（verifier＋factory が揃った時のみ有効化）、`index.ts` で `SUPABASE_URL`＋`SUPABASE_ANON_KEY` から構築。auth ミドルウェアは検証済み `token` も Context に載せる。共有 IF に `SaveMindMapInput`（id 任意）を追加。ESLint に未使用 `^_`／rest 兄弟の無視規約を追加。**テスト**: 保存系ルート 8（**認可: 認証なし401／保存→一覧→取得で再編集=AC-10／上書き／他人は一覧非表示・取得404・削除しても残る=AC-11**／孤立エッジ400／不存在404／削除204→404）＋Repository マッピング 6（list/get(null)/insert・update 分岐・root_keyword 導出・DB エラー throw・remove）。4ゲート green（型/Lint/Vitest shared9・**api65**・web65/ビルド）。**実 Supabase での 2 ユーザー RLS 回帰（Docker/CLI 要）は本環境で未実施＝T03 から繰り越し**、ルートはインメモリ Repository で RLS 相当の本人限定を統合検証し、実 DB 検証はステージング/手動に橋渡し）
 
 ### T14: フロント保存導線（保存時ログイン要求・一覧・開く・削除）
 

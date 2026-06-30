@@ -6,7 +6,9 @@ import { optionalAuth, type AuthEnv, type JwtVerifier } from './middleware/auth.
 import { registerHealthRoutes } from './routes/health.routes.js'
 import { registerAssociationRoutes } from './routes/associations.routes.js'
 import { registerExpansionRoutes } from './routes/expansion.routes.js'
+import { registerMapsRoutes } from './routes/maps.routes.js'
 import { InMemoryExpansionLock } from '../app/expansion/expansionLock.js'
+import type { MindMapRepositoryFactory } from '../infra/repositories/supabaseMindMapRepository.js'
 
 export interface AppDeps {
   readonly associationProvider: AssociationProvider
@@ -14,9 +16,11 @@ export interface AppDeps {
   readonly corsOrigin?: string
   /**
    * JWT 検証関数（DESIGN §7）。指定時は生成系に任意認証を適用し、ログイン時のみ userId を載せる。
-   * 未指定時は認証なし（ゲストのみ）。保存系（必須認証）は別タスク（T13）で requireAuth を使う。
+   * 保存系（必須認証）は repositoryFactory と併せて指定したときのみ有効化する。
    */
   readonly jwtVerifier?: JwtVerifier
+  /** マップ永続化の Repository ファクトリ（RLS 引き継ぎ）。jwtVerifier と併せて保存系を有効化する。 */
+  readonly repositoryFactory?: MindMapRepositoryFactory
 }
 
 /** アプリで使う Hono の型（Context 変数に userId を持つ）。 */
@@ -42,6 +46,11 @@ export const createApp = (deps: AppDeps): AppHono => {
   registerHealthRoutes(app)
   registerAssociationRoutes(app, deps.associationProvider)
   registerExpansionRoutes(app, deps.associationProvider, expansionLock)
+
+  // 保存系（認証必須・RLS）。検証関数と Repository ファクトリが揃ったときのみ有効化する。
+  if (deps.jwtVerifier && deps.repositoryFactory) {
+    registerMapsRoutes(app, deps.repositoryFactory, deps.jwtVerifier)
+  }
 
   app.onError(handleError)
 

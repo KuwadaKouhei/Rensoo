@@ -8,9 +8,18 @@ export interface MindMapSummary {
   readonly updatedAt: string
 }
 
-/** 保存されるマップの実体（メタ＋ノード/エッジ＋生成設定）。 */
+/** 保存されるマップの実体（メタ＋ノード/エッジ＋生成設定）。取得時は id を必ず持つ。 */
 export interface MindMapSnapshot {
   readonly id: string
+  readonly title: string
+  readonly nodes: readonly MindMapNode[]
+  readonly edges: readonly MindMapEdge[]
+  readonly settings: GenerationSettings
+}
+
+/** 保存（新規/上書き）の入力。id があれば上書き、なければ新規作成。 */
+export interface SaveMindMapInput {
+  readonly id?: string
   readonly title: string
   readonly nodes: readonly MindMapNode[]
   readonly edges: readonly MindMapEdge[]
@@ -29,8 +38,8 @@ export interface MindMapRepository {
   list(userId: string): Promise<readonly MindMapSummary[]>
   /** 1件取得（他人のものは取得不可。なければ null）。 */
   get(userId: string, mapId: string): Promise<MindMapSnapshot | null>
-  /** 新規作成 or 上書き保存（本人のもののみ）。 */
-  save(userId: string, snapshot: MindMapSnapshot): Promise<MindMapSummary>
+  /** 新規作成 or 上書き保存（本人のもののみ）。id 有無で分岐。 */
+  save(userId: string, input: SaveMindMapInput): Promise<MindMapSummary>
   /** 削除（本人のもののみ）。 */
   remove(userId: string, mapId: string): Promise<void>
 }

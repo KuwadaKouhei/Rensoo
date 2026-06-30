@@ -8,8 +8,8 @@ import type { MiddlewareHandler } from 'hono'
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose'
 import type { ErrorResponseBody } from '../errors.js'
 
-/** Context 変数の型（保存系ハンドラが userId を読む）。 */
-export type AuthEnv = { Variables: { userId?: string } }
+/** Context 変数の型（保存系ハンドラが userId と JWT を読む）。 */
+export type AuthEnv = { Variables: { userId?: string; token?: string } }
 
 /** 検証済みクレーム（必要最小限）。 */
 export interface JwtClaims {
@@ -78,6 +78,8 @@ export const requireAuth = (verify: JwtVerifier): MiddlewareHandler<AuthEnv> => 
     try {
       const claims = await verify(token)
       c.set('userId', claims.sub)
+      // RLS 引き継ぎ用に検証済みトークンも載せる（保存系で利用）。
+      c.set('token', token)
     } catch (err) {
       // 失敗理由（期限切れ/改竄等）はログのみ。ユーザーには一律 401。
       console.error('[auth] JWT 検証に失敗しました', err)
@@ -99,6 +101,7 @@ export const optionalAuth = (verify: JwtVerifier): MiddlewareHandler<AuthEnv> =>
       try {
         const claims = await verify(token)
         c.set('userId', claims.sub)
+        c.set('token', token)
       } catch (err) {
         // 生成系は未認証可。無効トークンはゲスト扱いで続行（握りつぶさずログ）。
         console.warn('[auth] 任意認証で無効なトークンを無視しました', err)
