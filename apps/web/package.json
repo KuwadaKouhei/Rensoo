@@ -12,8 +12,12 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@rensoo/shared": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

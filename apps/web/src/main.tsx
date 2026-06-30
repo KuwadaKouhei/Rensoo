@@ -1,7 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { App } from './app/App'
 
-// T01 は「最小で起動可能な空アプリ」。画面・状態・連想機能は T05 以降で実装する。
+// エントリポイント。アプリ本体（ルーター含む）を #root にマウントする。
 const rootElement = document.getElementById('root')
 if (!rootElement) {
   // エラーは握りつぶさず明示する（CODING_PHILOSOPHY）。
@@ -10,9 +11,6 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <main>
-      <h1>Rensoo</h1>
-      <p>準備中です。</p>
-    </main>
+    <App />
   </StrictMode>,
 )

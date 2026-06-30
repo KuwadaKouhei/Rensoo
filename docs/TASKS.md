@@ -112,7 +112,7 @@
   起点ノード生成）。UI 非依存のプレーン TS としてモックなしでテスト可能にする。
 - **依存タスク**: T01, T02
 - **推奨ブランチ名**: `feature/T05-web-foundation-store`
-- **状態**: todo
+- **状態**: done（Zustand マップストア（純粋関数 `createRootMap`/`appendAssociations` ＋ store・起点生成/子取り込み整合/重複・空白除去/孤立エッジ防止/モード・設定・進行状態を 17 ケースで検証）、型付き API クライアント（`client`/`associations`/`errors`：shared の Zod で送受信検証・サーバー日本語メッセージ透過・`retryable` 判定・ネットワーク/非JSON/スキーマ不一致を ApiError に正規化）、アプリ骨格（`App`/`routes`＋`react-router-dom`）、`ui/Button`、`vite-env.d.ts` を実装し4ゲート green。連想 API の応答契約 `associateResponseSchema` を `packages/shared` に追加してフロント/サーバーで共有。実画面（キーワード→作成→描画）は T07 で本ホームに実装）
 
 ### T06: マインドマップ描画（React Flow＋layout 拡張点）
 
