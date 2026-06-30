@@ -10,7 +10,11 @@ import {
   type GenerationSettings,
   type MindMapEdge,
   type MindMapNode,
+  type SavedMap,
 } from '@rensoo/shared'
+
+/** マップの既定タイトル（DB の default と一致させる）。 */
+const DEFAULT_TITLE = '無題のマップ'
 
 /** 展開モード（自動連鎖 / 手動クリック展開のトグル・AC-4）。 */
 export type ExpansionMode = 'auto' | 'manual'
@@ -215,9 +219,17 @@ export interface MindMapStore {
   readonly stopReason: ExpansionStopReason | null
   /** 編集対象として選択中のノード id（未選択は null）。 */
   readonly selectedNodeId: string | null
+  /** マップのタイトル（保存・一覧表示用）。 */
+  readonly title: string
+  /** 保存済みマップの id（未保存/新規は null。保存時の上書き判定に使う）。 */
+  readonly mapId: string | null
 
   /** 起点キーワードでマップを作り直す（既存マップは破棄）。 */
   startNewMap: (keyword: string) => void
+  /** タイトルを設定する。 */
+  setTitle: (title: string) => void
+  /** 保存済みマップを読み込んで再編集状態にする（id を保持し以後は上書き保存）。 */
+  loadMap: (saved: SavedMap) => void
   /** 親ノードへ連想語を子として取り込む。 */
   appendChildren: (parentId: string, words: readonly AssociationWord[]) => void
   /** 自走展開の SSE バッチを取り込む（サーバー採番 id）。 */
@@ -256,6 +268,8 @@ interface InitialFields {
   readonly errorMessage: string | null
   readonly stopReason: ExpansionStopReason | null
   readonly selectedNodeId: string | null
+  readonly title: string
+  readonly mapId: string | null
 }
 
 const initialFields = (): InitialFields => ({
@@ -268,9 +282,11 @@ const initialFields = (): InitialFields => ({
   errorMessage: null,
   stopReason: null,
   selectedNodeId: null,
+  title: DEFAULT_TITLE,
+  mapId: null,
 })
 
-/** マップ本体のみ初期化する差分（設定・モードは保持）。 */
+/** マップ本体のみ初期化する差分（設定・モードは保持。新しいマップなので id/タイトルもリセット）。 */
 const clearedMapFields = () => ({
   nodes: [],
   edges: [],
@@ -279,6 +295,8 @@ const clearedMapFields = () => ({
   errorMessage: null,
   stopReason: null,
   selectedNodeId: null,
+  title: DEFAULT_TITLE,
+  mapId: null,
 })
 
 export const useMindMapStore = create<MindMapStore>((set, get) => ({
@@ -286,8 +304,35 @@ export const useMindMapStore = create<MindMapStore>((set, get) => ({
 
   startNewMap: (keyword) => {
     const next = createRootMap(keyword)
-    set({ nodes: next.nodes, edges: next.edges, seq: next.seq, status: 'idle', errorMessage: null })
+    // 新規マップなので保存 id とタイトルもリセットする。
+    set({
+      nodes: next.nodes,
+      edges: next.edges,
+      seq: next.seq,
+      status: 'idle',
+      errorMessage: null,
+      stopReason: null,
+      selectedNodeId: null,
+      title: DEFAULT_TITLE,
+      mapId: null,
+    })
   },
+
+  setTitle: (title) => set({ title }),
+
+  loadMap: (saved) =>
+    set({
+      nodes: saved.nodes,
+      edges: saved.edges,
+      seq: 0,
+      settings: saved.settings,
+      title: saved.title,
+      mapId: saved.id,
+      status: 'idle',
+      errorMessage: null,
+      stopReason: null,
+      selectedNodeId: null,
+    }),
 
   appendChildren: (parentId, words) => {
     const { nodes, edges, seq } = get()

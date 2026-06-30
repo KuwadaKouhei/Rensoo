@@ -239,7 +239,7 @@
   **コンポーネント**: ゲスト保存→ログイン要求が出る、保存後に一覧へ反映。
 - **依存タスク**: T13
 - **推奨ブランチ名**: `feature/T14-web-save-flow`
-- **状態**: todo
+- **状態**: done（保存系 API クライアント `api-client/maps`（list/get/save/delete・Authorization Bearer・応答を shared Zod で検証、`apiFetch` は 204/空ボディを許容）と保存導線フロー `features/auth-save/mapsFlow`（`saveCurrentMap`＝**未ログインは保存せず login-required=AC-9**／ログイン時は現在マップを保存し `mapId` を確定し以後は上書き=AC-10／空マップ非保存／API 失敗は日本語／`fetchMapList`・`openMap`＝取得→`loadMap` で再編集／`deleteMapById`＝開いていれば mapId 解除、いずれも getToken/client 注入可能）を実装。store に `title`/`mapId`＋`setTitle`/`loadMap` を追加（startNewMap/clearMap で id・タイトルもリセット）。UI: `SaveDialog`（タイトル＋保存・未ログインでログイン要求）/`MapListPanel`（ログイン時のみ一覧・開く・削除、保存後 reloadKey で再取得）をオーバーレイに配置。shared に `savedMapSchema`/`mapListResponseSchema` を追加。**テスト**: 保存導線フロー 11（AC-9 ログイン要求・AC-10 保存→mapId 確定/上書き/一覧/開いて再編集・AC-11 のフロント側=404 で開けず error・削除で mapId 解除・空マップ非保存・API 失敗日本語）。4ゲート green（型/Lint/Vitest shared9・api65・**web76**/ビルド）。**マイルストーン M4 完了**（認証＆保存・AC-9,10,11）。保存 UI 自体は build/typecheck＋フロー統合テストで担保（jsdom コンポーネントテストは TEST_PHILOSOPHY に従い不採用）。実 Supabase での OAuth＋RLS 通し確認はステージング/手動に橋渡し）
 
 ### T15: エラーハンドリング横断仕上げ＋シークレット秘匿確認
 
