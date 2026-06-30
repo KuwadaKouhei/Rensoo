@@ -6,7 +6,7 @@ import { errorBody } from '../errorResponses.js'
 import type { AuthEnv } from '../middleware/auth.js'
 import { runExpansion, type ExpansionEvent } from '../../app/expansion/expansionOrchestrator.js'
 import type { InMemoryExpansionLock } from '../../app/expansion/expansionLock.js'
-import { logInfo } from '../../app/observability/logger.js'
+import { logError, logInfo } from '../../app/observability/logger.js'
 
 /** 内部イベント type → SSE イベント名の対応。 */
 const EVENT_NAME: Record<ExpansionEvent['type'], string> = {
@@ -101,7 +101,8 @@ export const registerExpansionRoutes = (
           })
         } catch (err) {
           // 想定外（emit/stream 失敗など）は SSE error として通知し握りつぶさない。
-          console.error('[expansion] 想定外のエラー', err)
+          // 詳細はサーバーログのみ（機微情報は logger 側でキー除外）。
+          logError('expansion.error', { message: err instanceof Error ? err.message : 'unknown' })
           await stream.writeSSE({
             event: EXPANSION_EVENT.error,
             data: JSON.stringify({

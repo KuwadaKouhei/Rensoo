@@ -135,7 +135,8 @@ describe('runExpansion', () => {
     const error = events.find((e) => e.type === 'error')
     expect(error).toMatchObject({ code: 'INTERNAL', retryable: false })
     expect(JSON.stringify(events)).not.toContain('secret')
-    expect(events.at(-1)?.type).toBe('stopped')
+    // エラー由来の停止は reason='error'（user_stop と区別・可観測性）。
+    expect(events.at(-1)).toMatchObject({ type: 'stopped', reason: 'error' })
   })
 
   it('rate_limit 失敗は RATE_LIMITED(retryable) の error になる', async () => {

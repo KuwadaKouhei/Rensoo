@@ -125,7 +125,8 @@ export const runExpansion = async (
     } catch (err) {
       const mapped = toErrorEvent(err)
       await deps.emit(mapped)
-      await deps.emit({ type: 'stopped', reason: 'user_stop', totalNodes })
+      // エラー由来の停止は user_stop と区別する（可観測性: ログ集計で「ユーザー停止」と混ざらない）。
+      await deps.emit({ type: 'stopped', reason: 'error', totalNodes })
       return
     }
 
