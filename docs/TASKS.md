@@ -126,7 +126,7 @@
   破綻しないレイアウト。クリックで対象ノード ID をストア/ハンドラに伝える。
 - **依存タスク**: T05
 - **推奨ブランチ名**: `feature/T06-mindmap-render-layout`
-- **状態**: todo
+- **状態**: done（`layout()` 拡張点（`layout.ts` の `LayoutFn`/`LayoutInput`/`PositionedNode`）と Dagre 第一実装（`dagreLayout.ts`：純粋関数・中心→左上原点変換）を実装。`MindMapCanvas.tsx` は React Flow（`@xyflow/react`）描画で、ノード/エッジを Zustand から供給し座標は layout() で都度算出（描画ライブラリ分離・内蔵 state にドメインを握らせない）、ズーム/パンは標準機能、`onNodeSelect` でクリック対象 ID をハンドラへ伝達（手動展開は T08 で配線）。`dagreLayout` を 6 ケース（全ノード座標・決定性・TB 親子上下/LR 親子左右・40 ノード破綻なし・孤立起点）で検証し4ゲート green。ホームに Canvas を全画面表示（入力 UI は T07）。React Flow 同梱で web バンドルが ~510kB（gzip ~162kB）に増加＝コード分割は M5/T15 の性能仕上げで対応予定）
 
 ### T07: キーワード入力→作成→単発生成→描画（縦貫通・ゲスト）
 
