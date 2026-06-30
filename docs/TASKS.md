@@ -212,7 +212,7 @@
   生成系は任意（未認証可）でゲスト動作が壊れないことを確認（AC-8）。**ユニット**: JWT 検証（正常/期限切れ/改竄/欠落）の分類。
 - **依存タスク**: T04
 - **推奨ブランチ名**: `feature/T12-auth-jwks-middleware`
-- **状態**: todo
+- **状態**: done（API 認証ミドルウェア `auth.ts`（`createJwksVerifier`＝jose `createRemoteJWKSet` で JWKS/ES256 をローカル検証・kid ミス時再取得／`requireAuth`＝欠落・無効は 401 日本語・成功で `userId` を Context に／`optionalAuth`＝未認証可・**無効トークンもゲスト続行**で生成を壊さない=AC-8・`AuthEnv` 型）を実装し、`createApp` に `jwtVerifier` を DI して生成系に optionalAuth を配線、`index.ts` で `SUPABASE_URL` から JWKS verifier を構築（未設定ならゲストのみ）。フロントは `auth/supabaseClient`（Google OAuth・`getAccessToken`・未設定なら null＝ゲスト専用）／`auth/useAuth`（セッション購読）／`features/auth-save/LoginButton`、オーバーレイに配置。**テスト**: 実 ES256 検証 4（正常/期限切れ/別鍵改竄/sub 欠落）＋ミドルウェア 6（requireAuth 欠落・無効・正常／optionalAuth 欠落・無効ゲスト・正常）。4ゲート green（型/Lint/Vitest shared9・**api51**・web65/ビルド）。保存系ハンドラ（requireAuth 適用）と RLS 引き継ぎは T13。フロント認証 UI は境界（OAuth/ネットワーク）のため jsdom テスト不採用＝build/typecheck で担保。実 Supabase での OAuth 疎通は鍵環境/手動・統合 T13 で確認）
 
 ### T13: 保存系 API（maps CRUD＋SupabaseMindMapRepository／RLS 統合テスト）
 

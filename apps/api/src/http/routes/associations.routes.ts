@@ -6,12 +6,16 @@ import {
   type AssociationProvider,
 } from '@rensoo/shared'
 import type { ErrorResponseBody } from '../errors.js'
+import type { AuthEnv } from '../middleware/auth.js'
 
 /**
  * POST /api/associations（単発の連想生成・認証任意・AC-1,2）。
  * 入力を Zod 検証 → Provider で生成 → normalizeAssociations で整形して返す。
  */
-export const registerAssociationRoutes = (app: Hono, provider: AssociationProvider): void => {
+export const registerAssociationRoutes = (
+  app: Hono<AuthEnv>,
+  provider: AssociationProvider,
+): void => {
   app.post(
     '/api/associations',
     zValidator('json', associateRequestSchema, (result, c) => {
