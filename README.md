@@ -101,6 +101,15 @@ Rensoo/
    ```
 
 2. 環境変数を設定します（[環境変数](#環境変数) を参照）。`apps/api` には少なくとも `ANTHROPIC_API_KEY` が必須です。
+   雛形をコピーして値を埋めてください（`.env` は `.gitignore` 済みでコミットされません）。
+
+   ```bash
+   cp apps/api/.env.example apps/api/.env
+   # apps/api/.env を編集して ANTHROPIC_API_KEY などを設定
+   ```
+
+   `apps/api` の `dev` / `start` は `--env-file-if-exists=.env` で `apps/api/.env` を自動読み込みします
+   （ファイルが無くても起動は失敗せず、シェルの環境変数だけで動かすことも可能）。
    Supabase 関連を設定しない場合、保存・認証機能は無効化され、ゲスト機能のみ動作します。
 
 3. API サーバーを起動します（既定ポート 8787）。
