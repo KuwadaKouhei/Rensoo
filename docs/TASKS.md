@@ -1,7 +1,7 @@
 # Rensoo タスク分解 (TASKS)
 
-- ステータス: ドラフト（STEP3 タスク分解 / 全6フェーズ）
-- 最終更新: 2026-06-26
+- ステータス: T01〜T16 done。**M6（UI 大規模改修 / T17〜T22）を追加＝次イテレーション**
+- 最終更新: 2026-07-01
 - 上位入力: docs/DESIGN.md / docs/REQUIREMENTS.md（AC-1〜13） / docs/DATABASE.md / docs/DIRECTORY_STRUCTURE.md
 - Git 運用: docs/GIT_CONVENTIONS.md（1タスク=1機能=1ブランチ=1PR、`feature/<タスクID>-<slug>`、Conventional Commits）
 - テスト方針: docs/philosophy/TEST_PHILOSOPHY.md（重点＝連想生成・停止条件・編集・認可を縦スライス内でユニット＋主要フロー統合）
@@ -28,8 +28,11 @@
 | **M3** | ノード手動編集 | T11 | ノード追加/編集/削除・孤立エッジ除去（AC-7） |
 | **M4** | 認証＆保存 | T12, T13, T14 | OAuth ログイン・保存時ログイン要求・一覧/取得/再編集/削除・本人限定（AC-9,10,11、AC-8 確定） |
 | **M5** | 仕上げ | T15, T16 | エラー/再試行の一貫日本語化・性能/可観測性・CI ゲート強化（AC-12,13、NFR 群） |
+| **M6** | UI 大規模改修 | T17, T18, T19, T20, T21, T22 | shadcn/ui 導入・**ホーム/編集の2画面構成**・ホーム(未ログイン=紹介/ログイン=一覧)・編集のノードツリー・生成中クリック禁止＋ローディング・完了後 fitView |
 
 > PoC（Claude 連想品質/レイテンシ・自走展開コスト/429）は専用タスクに切り出さず、**T04（連想 Provider）と T08（自走展開）の「やること」に内包**する（早い段階で実測し、結果を `docs/FEASIBILITY.md` に追記）。
+
+> **M6 はドキュメント駆動で進める（最重要ルール #2）**：既存 MVP（単一画面）からの仕様変更を含むため、各タスクは**実装前に対応する設計ドキュメントを先に更新**する。主に DESIGN §2.1（画面/ルーティング構成）、TECH_STACK（shadcn/ui＋Tailwind の採用理由）、DIRECTORY_STRUCTURE（`pages/`・`components/ui/` 等の配置）。新規 UX の受け入れ条件（2画面遷移・生成中クリック禁止・完了後 fitView 等）は T17 着手時に REQUIREMENTS.md へ AC-14〜 として追記することを推奨（既存 AC-1〜13 は縮退させない）。
 
 ---
 
@@ -270,6 +273,73 @@
 
 ---
 
+## 2b. M6 タスク一覧（UI 大規模改修・実装順）
+
+> 縦スライス順（各タスクのマージで `main` がグリーンを保てる）。**各タスクは実装前に対応ドキュメントを更新**（ドキュメント駆動）。
+> 既存の連想生成・自走展開・保存・認可のドメイン/ API は原則そのまま再利用し、**フロントの画面構成と UI 層を再編**する。
+
+### T17: shadcn/ui 導入・Tailwind 基盤・UI プリミティブ整備
+
+- **概要**: Tailwind CSS ＋ shadcn/ui を導入し、UI 基盤（テーマ/トークン・`cn` ユーティリティ・Button/Input/Card/Dialog/ScrollArea 等のプリミティブ）を整える。既存 `ui/Button` と各 feature の素の要素を段階移行の起点にする。**先に TECH_STACK.md に shadcn/ui＋Tailwind の採用理由・比較を追記し、DIRECTORY_STRUCTURE.md に `components/ui/` 配置ルールを追記**。
+- **対応AC / 対応要件**: 直接 AC なし（M6 全タスクの UI 土台）／ NFR-2（バンドル）, PLAN_PHILOSOPHY（変動点の抽象化）, DESIGN §2.1
+- **主な変更場所**: `apps/web/tailwind.config.ts`, `apps/web/postcss.config.js`, `apps/web/src/index.css`（Tailwind ディレクティブ＋トークン）, `apps/web/src/lib/utils.ts`（`cn`）, `apps/web/src/components/ui/`（shadcn プリミティブ）, `components.json`, `apps/web/src/ui/Button.tsx`（移行）, `docs/TECH_STACK.md`, `docs/DIRECTORY_STRUCTURE.md`
+- **やること（テスト含む）**: Tailwind＋shadcn/ui を初期化し、プリミティブを最低1つ導入。既存フロー（作成→描画→展開→編集→保存）が**視覚破綻なく従来どおり動く**（型/Lint/ビルド green・既存 Vitest 継続 pass）。`manualChunks` の分割方針を維持しバンドル肥大を抑える（NFR-2）。**ユニット**: `cn` の結合・Tailwind 衝突解決。
+- **依存タスク**: 現行 main（T16 まで done）
+- **推奨ブランチ名**: `feature/T17-shadcn-ui-foundation`
+- **状態**: 未着手
+
+### T18: 2画面ルーティング（ホーム `/` ＋ 編集 `/map`）への再編
+
+- **概要**: 現行の単一画面（全画面キャンバスに操作 UI を重ねる）を、**ホーム画面**と**マインドマップ編集画面**の2画面に分離する。react-router に編集ルートを追加し、既存の Canvas＋Toolbar＋編集 UI を編集画面へ移設。ゲストフローを維持する。**先に DESIGN §2.1 へ画面/ルーティング構成、DIRECTORY_STRUCTURE へ `pages/` 配置を追記**。
+- **対応AC / 対応要件**: AC-1,8 の導線／ FR-6, DESIGN §2.1
+- **主な変更場所**: `apps/web/src/app/routes.tsx`（Home/Editor ルート）, `apps/web/src/pages/HomePage.tsx`・`apps/web/src/pages/EditorPage.tsx`（新設）, `apps/web/src/features/mind-map/*`（編集画面へ集約）, 画面間遷移（`useNavigate`）, `docs/DESIGN.md`, `docs/DIRECTORY_STRUCTURE.md`
+- **やること（テスト含む）**: `/`=ホーム、`/map`（必要なら `/map/:id`）=編集。編集画面で従来どおり作成→描画→展開→編集が動く。ホームの「作成」から編集画面へ遷移して生成が始まる。**統合/フローテスト**: ルート解決とホーム→編集の遷移で既存生成フロー結線が壊れていないこと。
+- **依存タスク**: T17
+- **推奨ブランチ名**: `feature/T18-two-screen-routing`
+- **状態**: 未着手
+
+### T19: ホーム画面（未ログイン=機能紹介／ログイン=保存マップ一覧＋作成入力）
+
+- **概要**: ホーム画面の中身を実装。**ログイン**ボタン、**キーワード入力＋作成ボタン**（押下で編集画面へ遷移し生成開始）、**ログイン時**は保存済みマインドマップ**一覧**（開く/削除）、**未ログイン時**は機能紹介（ヒーロー＋特徴カード）。既存 `maps` API・`mapsFlow`・auth を再利用する。
+- **対応AC / 対応要件**: AC-8,9,10／ FR-1,19,21, DESIGN §2.1/§7.1
+- **主な変更場所**: `apps/web/src/pages/HomePage.tsx`, `apps/web/src/features/home/`（Hero・FeatureIntro＝新設）, `apps/web/src/features/auth-save/MapListPanel.tsx`（ホーム用に再利用/調整）, 作成入力導線（`MindMapToolbar` から分離してホームへ）
+- **やること（テスト含む）**: 未ログイン=紹介＋作成入力（**ゲストで作成可**=AC-8）、ログイン=一覧表示＋開く（編集画面へ）＋削除（AC-10）。作成入力の空/範囲は既存 Zod に従う。**フローテスト**: 認証状態でホーム表示分岐（一覧 vs 紹介）、作成入力→編集画面遷移＋生成開始。
+- **依存タスク**: T18
+- **推奨ブランチ名**: `feature/T19-home-screen`
+- **状態**: 未着手
+
+### T20: 編集画面サイドメニュー（ノードのツリー表示）
+
+- **概要**: 編集画面にサイドメニューを追加し、現在のマップのノードを**親子ツリー**で表示する。ツリー項目の選択がキャンバス選択と同期（相互ハイライト）。ツリーはストアの nodes/edges から**純粋関数で導出**する。
+- **対応AC / 対応要件**: AC-1（可視化補助）, AC-7（選択/編集導線）／ DESIGN §2.1/§4.2
+- **主な変更場所**: `apps/web/src/features/mind-map/NodeTreePanel.tsx`（新設）, `apps/web/src/features/mind-map/buildNodeTree.ts`（+test・ツリー導出純粋関数）, `apps/web/src/store/mindMapStore.ts`（`selectedNodeId` 連携）
+- **やること（テスト含む）**: エッジ（親→子）から根＝depth0 起点にツリーを構築し、選択をキャンバスと同期。**重点ユニット**: `buildNodeTree`（親子階層・順序・空/単一ノード・数十〜百ノードで破綻なし・孤立なし前提の整合）。
+- **依存タスク**: T18
+- **推奨ブランチ名**: `feature/T20-node-tree-sidebar`
+- **状態**: 未着手
+
+### T21: 生成中の操作制御＋ローディング表示（クリック禁止・背景うっすら／完了後に編集可）
+
+- **概要**: 生成中（store `status='generating'`）は**ノードのクリックを禁止**し、**ローディング表示**を出す（**背景は生成中のマップをうっすら表示**）。キャンバスとツリーの双方でクリックを抑止。**生成完了（idle/stopped）でクリック→編集/削除を再有効化**する（既存 `NodeEditPopover` を状態でゲート）。
+- **対応AC / 対応要件**: AC-3（生成中 UX）, AC-6, AC-7／ NFR-8, DESIGN §6.2/§6.5
+- **主な変更場所**: `apps/web/src/features/mind-map/MindMapCanvas.tsx`（生成中は onNodeSelect 抑止＋半透明）, `apps/web/src/features/mind-map/GeneratingOverlay.tsx`（新設・ローディング＋背景うっすら）, `apps/web/src/features/mind-map/NodeTreePanel.tsx`（生成中無効化）, `apps/web/src/features/mind-map/NodeEditPopover.tsx`（status ゲート）
+- **やること（テスト含む）**: generating 中はノード選択ハンドラが発火せず編集ポップオーバーも開かない、完了後は開く。オーバーレイは背景マップを opacity/backdrop でうっすら残す。**ユニット/フロー**: status による選択可否分岐（generating=禁止 / idle=許可）とオーバーレイ表示条件。
+- **依存タスク**: T20
+- **推奨ブランチ名**: `feature/T21-generating-lock-loading`
+- **状態**: 未着手
+
+### T22: 生成完了後の全体表示ズーム（fitView 自動調整）
+
+- **概要**: 生成が終了（`generating`→`idle`/`stopped`）したタイミングで、React Flow の `fitView` により**マップ全体が収まるようズームを自動調整**する。手動でズーム/パンした後は尊重し、無限追従はしない。
+- **対応AC / 対応要件**: AC-1（可視化）, AC-3（完了 UX）／ NFR-2, DESIGN §3.3
+- **主な変更場所**: `apps/web/src/features/mind-map/MindMapCanvas.tsx`（status 遷移監視→`fitView`）, 必要なら layout 完了フック
+- **やること（テスト含む）**: 生成完了イベントで一度だけ fitView（全ノード可視）。段階描画中は毎回 fit しすぎない（完了時/停止時に整える）。**フロー/ユニット**: status が `generating`→`idle`/`stopped` に変化した時のみ fit をトリガする分岐（副作用境界を薄く保ちテスト可能に）。
+- **依存タスク**: T21
+- **推奨ブランチ名**: `feature/T22-fit-view-on-complete`
+- **状態**: 未着手
+
+---
+
 ## 3. 受け入れ条件トレーサビリティ（AC → タスク）
 
 | AC | 内容 | 主担当タスク | 補強タスク |
@@ -290,6 +360,8 @@
 
 > 全 AC（1〜13）が最低1タスクで満たされ、どの AC も取りこぼしがないことを確認済み。
 
+**M6（UI 改修）と AC の関係**: M6 は既存 AC を縮退させず UX を強化する（AC-1 可視化=T20,T22／ AC-3,6 生成中 UX=T21／ AC-7 編集導線=T20,T21／ AC-8 ゲスト作成=T19／ AC-10 一覧=T19）。2画面遷移・生成中クリック禁止・完了後 fitView など**新規 UX の受け入れ条件は T17 着手時に REQUIREMENTS.md へ AC-14〜として追記**し、本表に行を足す。
+
 ---
 
 ## 4. 依存関係グラフ（要約）
@@ -302,6 +374,8 @@ T01 ─┬─ T02 ─┬─ T04 ─┬─ T08 ─ T09 ─ T10
      ├─ T03 ───────────────── T13
      └ ...
   仕上げ: T15（← T07,T09,T14） / T16（← T09,T11,T14,T15）
+  M6(UI改修): T17 ─ T18 ─┬─ T19
+                          └─ T20 ─ T21 ─ T22
 ```
 
 - **並行可能**: T03 は T01 完了後 T02/T04 と並行可。T05/T06（フロント描画系）と T08/T12（API 拡張系）は
