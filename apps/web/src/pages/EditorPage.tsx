@@ -1,17 +1,16 @@
-// マインドマップ編集画面（M6・DESIGN §2.1.1）。
-// 左にノードツリーのサイドバー、右に放射状キャンバス＋トップバー＋操作 UI を配置する。
-// 生成の実行/停止は本ページが単一の展開コントローラ（useExpansionStream）で所有し、
-// ツールバーの「作成/停止」とトップバーの「再生成」が同じストリームに作用するようにする。
+// マインドマップ編集画面（M6・レイアウト再構成・DESIGN §2.1.1）。
+// 配置: 左=ノードツリー / 中央=放射状キャンバス＋上部タイトル / 左上=生成コントロール（モード・件数・作成/停止/再生成）
+//       右上=アカウント（ログイン・保存） / 右=ノード編集サイドバー（ノード選択時のみ）。
+// 生成の実行/停止は本ページが単一の展開コントローラ（useExpansionStream）で所有し、コントロールから作用させる。
 
 import { useCallback, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { MindMapCanvas } from '../features/mind-map/MindMapCanvas'
-import { MindMapToolbar } from '../features/mind-map/MindMapToolbar'
-import { NodeEditPopover } from '../features/mind-map/NodeEditPopover'
-import { NodeTreePanel } from '../features/mind-map/NodeTreePanel'
+import { EditorControls } from '../features/mind-map/EditorControls'
+import { NodeEditSidebar } from '../features/mind-map/NodeEditSidebar'
 import { EditorTopBar } from '../features/mind-map/EditorTopBar'
 import { GeneratingOverlay } from '../features/mind-map/GeneratingOverlay'
-import { GenerationSettingsPanel } from '../features/generation-settings/GenerationSettingsPanel'
+import { NodeTreePanel } from '../features/mind-map/NodeTreePanel'
 import { LoginButton } from '../features/auth-save/LoginButton'
 import { SaveDialog } from '../features/auth-save/SaveDialog'
 import { useExpansionStream } from '../features/mind-map/useExpansionStream'
@@ -45,10 +44,8 @@ export const EditorPage = () => {
   )
 
   // ホームから渡された起点キーワードで、マウント時に一度だけ生成を開始する。
-  // 開始はマイクロタスクではなく次のタスクへ遅延する。これにより開発の StrictMode
-  // （mount→unmount→mount の二重実行）では、throwaway マウントの cleanup が保留中の開始を
-  // キャンセルし、本物のマウントでのみ生成が走る。ref ガードだと「開始直後に abort→再開されない」
-  // 競合で生成が始まらないため、遅延＋キャンセルで確実に一度だけ実行する。
+  // 開始を次のタスクへ遅延し、StrictMode の throwaway マウントの cleanup でキャンセルする
+  // （開始直後に abort→再開されない競合を避け、本物のマウントでのみ一度だけ走らせる）。
   useEffect(() => {
     const kw = autoStartKeyword?.trim()
     if (!kw) return
@@ -67,21 +64,25 @@ export const EditorPage = () => {
       <NodeTreePanel />
 
       <div className="relative flex-1 overflow-hidden">
-        <EditorTopBar onRegenerate={create} />
+        <EditorTopBar />
 
-        <div className="absolute left-3 top-[76px] z-10 flex max-w-[min(88vw,460px)] flex-col gap-3 rounded-xl border border-border bg-card/95 p-3 text-card-foreground shadow-lg backdrop-blur">
-          <div className="flex items-center justify-end">
-            <LoginButton />
-          </div>
-          <MindMapToolbar onCreate={create} onStop={stop} />
-          <GenerationSettingsPanel />
+        {/* 左上: 生成コントロール（展開モード・連想件数・作成/停止/再生成・状態）。オーバーレイより前面に置く。 */}
+        <div className="absolute left-3 top-3 z-30">
+          <EditorControls onCreate={create} onStop={stop} />
+        </div>
+
+        {/* 右上: アカウント（ログイン・保存）。 */}
+        <div className="absolute right-3 top-3 z-30 flex items-start gap-2">
+          <LoginButton />
           <SaveDialog />
-          <NodeEditPopover />
         </div>
 
         <MindMapCanvas onNodeSelect={(id) => useMindMapStore.getState().selectNode(id)} />
         <GeneratingOverlay />
       </div>
+
+      {/* 右: ノード編集サイドバー（ノード選択時のみ開く・生成中は非表示）。 */}
+      <NodeEditSidebar />
     </main>
   )
 }
