@@ -124,35 +124,54 @@ audience=`authenticated`）。実装は [apps/api/src/http/middleware/auth.ts](.
 
 > Supabase CLI を使う場合は代わりに `supabase link --project-ref <ref>` → `supabase db push` でも適用できます。
 
-## 6. Google ログイン（OAuth）を設定する
+## 6. Google ログインを設定する
 
-3か所（Google Cloud → Supabase → リダイレクト URL）を順に設定します。
+**全体像**: Google 側で「鍵（Client ID / Secret）」を作り、それを Supabase に貼り付け、最後に戻り先 URL を許可する——**3ステップ**です。
 
-### 6-1. Google Cloud で OAuth クライアントを作る
+```
+6-A) Supabaseで戻り先URLをコピー → 6-B) Googleで鍵を作る → 6-C) Supabaseに鍵を貼り、戻り先URLを許可
+```
 
-1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを作成（既存でも可）。
-2. **APIs & Services → OAuth consent screen** を構成（External / アプリ名 / サポートメール。テスト中は自分のアカウントを Test users に追加）。
-3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**。
-   - Application type: **Web application**
-   - **Authorized redirect URIs** に Supabase のコールバックを追加:
-     `https://<ref>.supabase.co/auth/v1/callback`
-4. 発行される **Client ID** と **Client Secret** を控える。
+> 💡 コツ: 先に **6-A で「戻り先 URL」をコピー**しておくと、6-B で貼るだけで済み、打ち間違い（一番多い失敗）を防げます。
 
-### 6-2. Supabase に Google プロバイダを登録
+### 手順6-A：Supabase で「戻り先 URL」をコピーする
 
-**Authentication → Providers → Google** を開き、
+1. Supabase ダッシュボードで **Authentication（左メニュー）→ Providers → Google** を開く。
+2. **Callback URL (for OAuth)** という欄に表示されている URL をコピーする。
+   - 形は `https://<ref>.supabase.co/auth/v1/callback`。この画面はまだ開いたままにしておく（6-C で使う）。
 
-1. **Enable** をオン。
-2. 6-1 の **Client ID** / **Client Secret** を貼り付けて保存。
+### 手順6-B：Google 側で「鍵」を作る
 
-### 6-3. Site URL / Redirect URLs を設定
+別タブで [Google Cloud Console](https://console.cloud.google.com/) を開く。
 
-**Authentication → URL Configuration**:
+1. プロジェクトを用意（無ければ新規作成。既存でも可）。
+2. **左メニュー → APIs & Services → OAuth consent screen（同意画面）** を設定:
+   - User Type は **External** を選ぶ。
+   - アプリ名・サポートメールを入力して保存。
+   - **Test users** に**自分の Google アドレスを追加**する（審査前はここに入れた人だけログインできる）。
+3. **APIs & Services → Credentials → ＋ Create Credentials → OAuth client ID** を選ぶ。
+   - **Application type**: **Web application** を選択。
+   - **Authorized JavaScript origins** に `http://localhost:5173` を追加。
+   - **Authorized redirect URIs** に、**6-A でコピーした URL をそのまま貼り付ける**
+     （`https://<ref>.supabase.co/auth/v1/callback`）。
+   - **Create** を押す。
+4. 表示される **Client ID** と **Client Secret** をコピーする（6-C で使う）。
 
-- **Site URL**: `http://localhost:5173`（開発。本番は本番オリジン）
-- **Redirect URLs** に許可 URL を追加: `http://localhost:5173`
-  （本番オリジンも運用時に追加。フロントは `redirectTo: window.location.origin` でコールバックします
-  — [apps/web/src/auth/supabaseClient.ts](../apps/web/src/auth/supabaseClient.ts)）
+### 手順6-C：Supabase に鍵を貼り、戻り先を許可する
+
+6-A で開いたままの Supabase タブに戻る。
+
+1. **Authentication → Providers → Google** で:
+   - **Enable Sign in with Google** をオンにする。
+   - **Client ID** と **Client Secret（keys）** に 6-B の値を貼り付け、**Save**。
+2. **Authentication → URL Configuration** を開き、ログイン後の戻り先を許可する:
+   - **Site URL**: `http://localhost:5173` を入力。
+   - **Redirect URLs**: `http://localhost:5173` を追加。
+   - **Save**。
+
+> 本番公開時は、上記の `http://localhost:5173` の代わりに本番のURL（例 `https://your-app.com`）を、
+> 6-B の JavaScript origins と 6-C の Site URL / Redirect URLs の両方に追加します。
+> フロントは「今開いているオリジンへ戻る」実装です（[apps/web/src/auth/supabaseClient.ts](../apps/web/src/auth/supabaseClient.ts) の `redirectTo: window.location.origin`）。
 
 ## 7. 動作確認
 
@@ -171,8 +190,9 @@ audience=`authenticated`）。実装は [apps/api/src/http/middleware/auth.ts](.
 | --- | --- |
 | 保存が必ず 401 になる | JWT が古い形式のまま（手順4-A の URL で `keys` が空）。手順4-B の「Migrate JWT secret」→「Rotate keys」を実施し、`"alg":"ES256"` が出るのを確認してから API を再起動。 |
 | ログインボタンが出ない/無反応 | フロントの `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` 未設定。`.env` を入れて Vite を再起動。 |
-| Google 認証後に `redirect_uri_mismatch` | 6-1 の Authorized redirect URIs が `https://<ref>.supabase.co/auth/v1/callback` と一致していない。 |
-| 認証後にアプリへ戻れない | 6-3 の Site URL / Redirect URLs に `http://localhost:5173` が無い。 |
+| Google 認証後に `redirect_uri_mismatch` | 手順6-B の Authorized redirect URIs が、6-A でコピーした `https://<ref>.supabase.co/auth/v1/callback` と一字一句一致していない。貼り直す。 |
+| 認証後にアプリへ戻れない | 手順6-C の Site URL / Redirect URLs に `http://localhost:5173` が無い。 |
+| `access_blocked` / このアプリは確認されていません | 手順6-B の OAuth consent screen の Test users に自分の Google アドレスを追加していない。 |
 | CORS エラー | サーバーの `WEB_ORIGIN=http://localhost:5173` を設定。 |
 | 保存できるが他人のマップが見える | RLS 未適用。手順5-②を再実行し Policies が4つあるか確認。 |
 
