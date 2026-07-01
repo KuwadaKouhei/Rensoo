@@ -17,6 +17,7 @@ import { SaveDialog } from '../features/auth-save/SaveDialog'
 import { useExpansionStream } from '../features/mind-map/useExpansionStream'
 import { createAssociationMap } from '../features/mind-map/createAssociationMap'
 import { useMindMapStore } from '../store/mindMapStore'
+import { useAuth } from '../auth/useAuth'
 
 /** ホーム画面から渡される遷移状態（起点キーワード）。 */
 interface EditorLocationState {
@@ -29,6 +30,7 @@ export const EditorPage = () => {
   const autoStartKeyword = (location.state as EditorLocationState | null)?.keyword
 
   const { start, stop } = useExpansionStream()
+  const { user } = useAuth()
   // 左上の生成コントロールパネルの開閉（ハンバーガーでトグル・既定は開）。
   const [controlsOpen, setControlsOpen] = useState(true)
 
@@ -83,10 +85,9 @@ export const EditorPage = () => {
           {controlsOpen && <EditorControls onCreate={create} onStop={stop} />}
         </div>
 
-        {/* 右上: アカウント（ログイン・保存）。 */}
+        {/* 右上: 認証状態で出し分ける。未ログイン=ログインのみ / ログイン=タイトル＋保存のみ。 */}
         <div className="absolute right-3 top-3 z-30 flex items-start gap-2">
-          <LoginButton />
-          <SaveDialog />
+          {user ? <SaveDialog /> : <LoginButton />}
         </div>
 
         <MindMapCanvas onNodeSelect={(id) => useMindMapStore.getState().selectNode(id)} />
