@@ -18,6 +18,7 @@ import type { MindMapEdge, MindMapNode } from '@rensoo/shared'
 import { radialLayout } from '../../mindmap-layout/radialLayout'
 import type { LayoutFn } from '../../mindmap-layout/layout'
 import { useMindMapStore } from '../../store/mindMapStore'
+import { isInteractionLocked } from './generatingUi'
 import {
   mindMapNodeTypes,
   nodeTypeForDepth,
@@ -62,6 +63,9 @@ export const MindMapCanvas = ({ onNodeSelect, layout = radialLayout }: MindMapCa
   const nodes = useMindMapStore((s) => s.nodes)
   const edges = useMindMapStore((s) => s.edges)
   const selectedNodeId = useMindMapStore((s) => s.selectedNodeId)
+  const status = useMindMapStore((s) => s.status)
+  // 生成中はノードのクリック（選択・手動展開）を禁止する（T21）。
+  const locked = isInteractionLocked(status)
 
   // 座標算出は nodes/edges/layout が変わったときだけ（選択変更では再計算しない）。
   const positions = useMemo(
@@ -86,6 +90,7 @@ export const MindMapCanvas = ({ onNodeSelect, layout = radialLayout }: MindMapCa
   )
 
   const handleNodeClick: NodeMouseHandler = (_event, node) => {
+    if (locked) return // 生成中はクリックを無視する。
     onNodeSelect?.(node.id)
   }
 

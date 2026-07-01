@@ -326,7 +326,7 @@
 - **やること（テスト含む）**: generating 中はノード選択ハンドラが発火せず編集ポップオーバーも開かない、完了後は開く。オーバーレイは背景マップを opacity/backdrop でうっすら残す。**ユニット/フロー**: status による選択可否分岐（generating=禁止 / idle=許可）とオーバーレイ表示条件。
 - **依存タスク**: T20
 - **推奨ブランチ名**: `feature/T21-generating-lock-loading`
-- **状態**: 未着手
+- **状態**: done（**生成中の操作制御＋ローディング/トップバー**を実装。表示条件を純粋関数 `generatingUi`（`isInteractionLocked`／`shouldShowLoadingOverlay`＝生成中かつノード≤1／`shouldShowBuildingIndicator`＝生成中かつノード≥2）に切り出し。`GeneratingOverlay`（全画面スピナー＋「AIが連想を広げています／『{center}』…」・`--mm-overlay`＋backdrop-blur で**背景マップをうっすら**）、`EditorTopBar`（中央=「{center} の連想マップ」・右=building ドットアニメ＋「↻ 再生成」）を新設。`MindMapCanvas` は生成中クリックを無視（AC-3 UX）、`NodeTreePanel` は生成中ツリー選択を無効化、`NodeEditPopover` は生成中は開かない（生成完了で編集/削除を再有効化・AC-7）。**生成制御の一元化**: `EditorPage` が単一の `useExpansionStream` を所有し `create`（自動=SSE/手動=単発）/`stop` を `MindMapToolbar`（controlled 化）と `EditorTopBar` に配線＝再生成と停止が同一ストリームに作用。autoStart も EditorPage へ集約。**ドキュメント先行更新**: DESIGN §6.2/§6.5（本タスクの UX を §2.1.1 に内包）。**テスト**: generatingUi 8（status×nodeCount 分岐）。4ゲート green（型/Lint/Vitest **web119**/ビルド）＋E2E 1 pass。完了後 fitView は T22）
 
 ### T22: 生成完了後の全体表示ズーム（fitView 自動調整）
 

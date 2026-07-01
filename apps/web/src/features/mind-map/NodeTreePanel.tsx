@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import type { CSSProperties } from 'react'
 import { useMindMapStore } from '../../store/mindMapStore'
 import { buildNodeTree, type NodeTreeRow } from './buildNodeTree'
+import { isInteractionLocked } from './generatingUi'
 
 /** depth ごとのドット色（root=グラデ / depth1=アクセント / それ以外=ノード枠色）。 */
 const dotStyle = (depth: number): CSSProperties => {
@@ -24,17 +25,20 @@ const dotStyle = (depth: number): CSSProperties => {
 const TreeRow = ({
   row,
   active,
+  disabled,
   onSelect,
 }: {
   row: NodeTreeRow
   active: boolean
+  disabled: boolean
   onSelect: (id: string) => void
 }) => (
   <button
     type="button"
+    disabled={disabled}
     onClick={() => onSelect(row.id)}
     style={{ paddingLeft: 12 + row.depth * 15 }}
-    className={`flex w-full items-center gap-2.5 rounded-lg py-1.5 pr-2.5 text-left transition-colors ${
+    className={`flex w-full items-center gap-2.5 rounded-lg py-1.5 pr-2.5 text-left transition-colors disabled:cursor-default disabled:hover:bg-transparent ${
       active ? 'bg-mm-accent/15 text-mm-accent' : 'hover:bg-mm-kid-bg'
     } ${row.depth === 0 ? 'text-sm font-bold' : row.depth === 1 ? 'text-[13px] font-semibold' : 'text-[13px] text-mm-kid-text'}`}
   >
@@ -48,6 +52,9 @@ export const NodeTreePanel = () => {
   const edges = useMindMapStore((s) => s.edges)
   const selectedNodeId = useMindMapStore((s) => s.selectedNodeId)
   const selectNode = useMindMapStore((s) => s.selectNode)
+  const status = useMindMapStore((s) => s.status)
+  // 生成中はツリーからの選択を無効化する（T21）。
+  const locked = isInteractionLocked(status)
 
   const rows = buildNodeTree(nodes, edges)
 
@@ -76,6 +83,7 @@ export const NodeTreePanel = () => {
               key={row.id}
               row={row}
               active={row.id === selectedNodeId}
+              disabled={locked}
               onSelect={selectNode}
             />
           ))
