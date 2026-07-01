@@ -16,8 +16,10 @@ export const FitViewController = () => {
     prev.current = status
     if (!fit) return
     // ノード反映後に整えるため次フレームで実行する。
+    // maxZoom=0.5 で拡大を 50% に抑える。ReactFlow の既定 minZoom も 0.5 のため、
+    // 生成完了時のズームは概ね 50% で全体の中心にフィットする（要望: ホーム生成時 ~50%）。
     const raf = requestAnimationFrame(() => {
-      void fitView({ duration: 400, padding: 0.2 })
+      void fitView({ duration: 400, padding: 0.2, maxZoom: 0.5 })
     })
     return () => cancelAnimationFrame(raf)
   }, [status, fitView])
