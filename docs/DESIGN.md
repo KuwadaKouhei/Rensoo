@@ -125,6 +125,23 @@ flowchart LR
 > ドメイン状態は Zustand に置き、React Flow へはそこから供給する。これにより「ロジックの UI 非依存」と
 > 「描画ライブラリ差し替え余地」を確保する（PLAN_PHILOSOPHY）。
 
+#### 2.1.1 画面／ルーティング構成（M6・T18 で導入）
+
+MVP は「全画面キャンバスに操作 UI を重ねる単一画面」だったが、M6（UI 大規模改修）で **2 画面構成**へ再編する。
+ルーティングは `react-router-dom` で定義し、ドメイン状態（Zustand ストア）は画面をまたいで共有されるため、
+ホームで開始した生成は編集画面へ遷移しても継続する。
+
+| ルート | 画面 | 責務 | 対応タスク |
+|---|---|---|---|
+| `/` | **ホーム画面**（`pages/HomePage.tsx`） | ヘッダー（ロゴ・ログイン・テーマ切替）／ヒーロー（キーワード入力＋「作成」）／**未ログイン=機能紹介**・**ログイン=保存マップ一覧（開く/削除）**。「作成」で `/map` へ遷移し生成開始 | T18, T19 |
+| `/map` | **マインドマップ編集画面**（`pages/EditorPage.tsx`） | サイドバー（ノードツリー・ノード数）／放射状キャンバス（描画・ズーム・生成中ロック・完了時 fitView）／トップバー（起点ラベル・生成中インジケータ・再生成）／ノード編集 | T18, T20, T21, T22 |
+
+- **共通ヘッダー**（`components/layout/AppHeader.tsx`）: ロゴ「MindWeave」・ログインボタン・テーマ切替を両画面で共有する。
+- **テーマ**: ダーク（既定）／ライトを `<html>` の `.dark` クラスで切り替える（`app/useTheme.ts`・localStorage 永続化）。
+  配色は `src/index.css` のデザイントークン（両モード）に集約し、コンポーネントはトークン経由でのみ参照する。
+- **状態共有**: 生成フロー（`createAssociationMap`/`startExpansion`）はストアを直接操作するため、ホーム→編集の遷移後も
+  進行状態・ノード/エッジがそのまま引き継がれる（画面はストアの購読者にすぎない）。
+
 ### 2.2 API サーバー（Hono on Node.js）
 
 | コンポーネント | 責務 | 依存方向の注意 |
@@ -267,9 +284,24 @@ export interface PositionedNode {
   readonly id: string;
   readonly position: { x: number; y: number };
 }
-/** 実装: dagreLayout / elkLayout。フロント側の純粋関数として差し替え可能。 */
+/** 実装: dagreLayout / radialLayout / elkLayout。フロント側の純粋関数として差し替え可能。 */
 export type LayoutFn = (input: LayoutInput) => readonly PositionedNode[];
 ```
+
+**実装（M6 で第2実装を追加）**:
+
+| 実装 | 特徴 | 座標系 | 位置づけ |
+|---|---|---|---|
+| `dagreLayout`（第一） | 階層（ツリー）配置。TB/LR 対応 | 左上原点 | 汎用・注入可能な代替 |
+| `radialLayout`（第二・**既定**） | 起点を中心に子を同心円状へ再帰配置（MindWeave デザインの放射状マップ） | **中心原点**（React Flow は `nodeOrigin=[0.5,0.5]` で各ノード中心を合わせる） | M6 の既定レイアウト |
+
+> `layout()` 抽象があるため、放射状レイアウトの追加は `apps/web/src/mindmap-layout/radialLayout.ts` を1ファイル足し、
+> `MindMapCanvas` の既定供給関数を差し替えるだけで完結した（Dagre 実装・ドメイン・ストアは無改変）。拡張点の設計どおり。
+
+**完了時 fitView（M6・T22）**: 生成が終わった瞬間（store `status` が `generating`→`idle`）だけ React Flow の `fitView` で
+全体が収まるようズームを自動調整する（`shouldFitViewOnStatusChange` 純粋関数で判定・`FitViewController`）。段階描画の
+毎バッチや失敗（error）では発火させず、以後の手動ズーム/パンは尊重する（無限追従しない）。右下のズーム UI（`ZoomControls`：
+拡大/縮小/倍率/全体表示）も同 API（`useReactFlow`）で提供する。
 
 ### 3.4 拡張点を「あえて設けない」もの（過剰設計の回避）
 

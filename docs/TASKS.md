@@ -1,6 +1,6 @@
 # Rensoo タスク分解 (TASKS)
 
-- ステータス: T01〜T16 done。**M6（UI 大規模改修 / T17〜T22）を追加＝次イテレーション**
+- ステータス: T01〜T16 done。**M6（UI 大規模改修 / T17〜T22）done ＝ MindWeave デザイン実装完了**
 - 最終更新: 2026-07-01
 - 上位入力: docs/DESIGN.md / docs/REQUIREMENTS.md（AC-1〜13） / docs/DATABASE.md / docs/DIRECTORY_STRUCTURE.md
 - Git 運用: docs/GIT_CONVENTIONS.md（1タスク=1機能=1ブランチ=1PR、`feature/<タスクID>-<slug>`、Conventional Commits）
@@ -296,7 +296,7 @@
 - **やること（テスト含む）**: `/`=ホーム、`/map`（必要なら `/map/:id`）=編集。編集画面で従来どおり作成→描画→展開→編集が動く。ホームの「作成」から編集画面へ遷移して生成が始まる。**統合/フローテスト**: ルート解決とホーム→編集の遷移で既存生成フロー結線が壊れていないこと。
 - **依存タスク**: T17
 - **推奨ブランチ名**: `feature/T18-two-screen-routing`
-- **状態**: 未着手
+- **状態**: done（**2 画面ルーティング**（`/`＝ホーム `pages/HomePage`／`/map`＝編集 `pages/EditorPage`）へ再編。ドメイン状態（Zustand）は画面共有のため、ホームの「生成する」→`useNavigate('/map', { state: { keyword } })` で遷移し、`MindMapToolbar` の `autoStartKeyword` が初回マウント時に一度だけ生成を開始（自動=SSE/手動=単発、`mode` 追従）。あわせて **M6 のデザイン基盤**を導入: `index.css` をデザイントークン（ダーク=1a `.dark`／ライト=1b `:root`、`--mm-*` 系＋フォント Space Grotesk/Zen Kaku Gothic New）に刷新、`app/useTheme`＋`app/ThemeProvider`＋`components/layout/ThemeToggle`・`AppHeader`（ロゴ＋テーマ切替＋ログイン）を追加。既定はダーク。**ドキュメント先行更新**: DESIGN §2.1.1（画面/ルーティング）、DIRECTORY_STRUCTURE（`pages/`・`components/layout/`・`useTheme` 配置）。**テスト**: `useTheme` 純粋部分6（初期値解決・DOM 反映）。E2E をホーム→「生成する」→`/map` 遷移→自走展開の新フローへ更新し 1 pass。4ゲート green（型/Lint/Vitest **web90**/ビルド。最大チャンク 296kB・500kB 警告なし）。ホームの機能紹介/保存一覧の出し分けは T19、編集画面のサイドバー/放射状/ロック/fitView は T20〜T22 で拡充）
 
 ### T19: ホーム画面（未ログイン=機能紹介／ログイン=保存マップ一覧＋作成入力）
 
@@ -306,7 +306,7 @@
 - **やること（テスト含む）**: 未ログイン=紹介＋作成入力（**ゲストで作成可**=AC-8）、ログイン=一覧表示＋開く（編集画面へ）＋削除（AC-10）。作成入力の空/範囲は既存 Zod に従う。**フローテスト**: 認証状態でホーム表示分岐（一覧 vs 紹介）、作成入力→編集画面遷移＋生成開始。
 - **依存タスク**: T18
 - **推奨ブランチ名**: `feature/T19-home-screen`
-- **状態**: 未着手
+- **状態**: done（ホーム中身を実装。`features/home/Hero`（バッジ＋見出し＋サブ＋キーワード入力＋「生成する」＋クイックピック〔コーヒー/宇宙/旅行/音楽〕＋「ログインなしでも生成できます」。生成は `onGenerate` に委譲）、`features/home/FeatureIntro`（未ログイン=3特徴カード）、`features/home/HomeMapGrid`（ログイン=保存マップ4カラムグリッド：ミニプレビュー＋タイトル＋相対更新日時、クリックで `openMap`→`/map` 遷移で再編集=AC-10／削除でホバー表示のゴミ箱→`deleteMapById`→再取得、他人のマップは API が返さず非表示=AC-11）を新設。`HomePage` は `useAuth` で **ログイン=一覧／未ログイン=紹介**を出し分け（ゲストでも作成可=AC-8）。既存 `mapsFlow`（fetchMapList/openMap/deleteMapById）・`maps` API を再利用。**テスト**: `formatUpdatedAt` 6（now 固定で相対表記・不正値フォールバック）。4ゲート green（型/Lint/Vitest **web96**/ビルド、最大チャンク 301kB）＋E2E 1 pass。保存 UI 自体（`SaveDialog`）は編集画面に残置し T14 のフローを継続利用）
 
 ### T20: 編集画面サイドメニュー（ノードのツリー表示）
 
@@ -316,7 +316,7 @@
 - **やること（テスト含む）**: エッジ（親→子）から根＝depth0 起点にツリーを構築し、選択をキャンバスと同期。**重点ユニット**: `buildNodeTree`（親子階層・順序・空/単一ノード・数十〜百ノードで破綻なし・孤立なし前提の整合）。
 - **依存タスク**: T18
 - **推奨ブランチ名**: `feature/T20-node-tree-sidebar`
-- **状態**: 未着手
+- **状態**: done（**放射状レイアウト＋カスタムノード＋サイドバーのノードツリー**を実装。①`mindmap-layout/radialLayout`（layout() 第2実装＝既定。起点を中心に子を同心円状へ再帰配置する純粋関数・中心原点座標・端点欠落エッジ/サイクル保護・孤立ノードも配置）。②`MindMapCanvas` を radial 既定＋`nodeOrigin=[0.5,0.5]`＋カスタムノード（`nodes/mindMapNodeTypes`＝root/branch/leaf をデザイン準拠でトークン配色・中心の不可視 Handle で線がノード中心から出る）＋深さ別の線太さ＋`Background` グリッド（`--mm-grid`）に更新。座標算出は nodes/edges/layout の memo、選択ハイライトは selectedNodeId で再レイアウトせず反映。③`features/mind-map/buildNodeTree`（edges から親子ツリーを前順で平坦化する純粋関数）＋`NodeTreePanel`（サイドバー 272px・ツリー・選択でキャンバスと相互ハイライト・ノード数フッター・ホーム戻り）。`EditorPage` をサイドバー＋キャンバスの2ペインへ再構成。ホームの一覧に統合済みの `MapListPanel` は編集画面から撤去（`HomeMapGrid` が後継）。**ドキュメント先行更新**: DESIGN §3.3（radial を第2実装＝既定として明記）、DIRECTORY_STRUCTURE（radialLayout 配置）。**テスト**: radialLayout 8（決定性・放射関係・境界・数十ノード）＋buildNodeTree 7（階層・順序・到達不能取りこぼしなし・サイクル）。4ゲート green（型/Lint/Vitest **web111**/ビルド、最大チャンク 305kB）＋E2E 1 pass（ノードラベルはツリーにも出るため canvas スコープに限定）。生成中ロック/ローディングは T21、完了後 fitView は T22）
 
 ### T21: 生成中の操作制御＋ローディング表示（クリック禁止・背景うっすら／完了後に編集可）
 
@@ -326,7 +326,7 @@
 - **やること（テスト含む）**: generating 中はノード選択ハンドラが発火せず編集ポップオーバーも開かない、完了後は開く。オーバーレイは背景マップを opacity/backdrop でうっすら残す。**ユニット/フロー**: status による選択可否分岐（generating=禁止 / idle=許可）とオーバーレイ表示条件。
 - **依存タスク**: T20
 - **推奨ブランチ名**: `feature/T21-generating-lock-loading`
-- **状態**: 未着手
+- **状態**: done（**生成中の操作制御＋ローディング/トップバー**を実装。表示条件を純粋関数 `generatingUi`（`isInteractionLocked`／`shouldShowLoadingOverlay`＝生成中かつノード≤1／`shouldShowBuildingIndicator`＝生成中かつノード≥2）に切り出し。`GeneratingOverlay`（全画面スピナー＋「AIが連想を広げています／『{center}』…」・`--mm-overlay`＋backdrop-blur で**背景マップをうっすら**）、`EditorTopBar`（中央=「{center} の連想マップ」・右=building ドットアニメ＋「↻ 再生成」）を新設。`MindMapCanvas` は生成中クリックを無視（AC-3 UX）、`NodeTreePanel` は生成中ツリー選択を無効化、`NodeEditPopover` は生成中は開かない（生成完了で編集/削除を再有効化・AC-7）。**生成制御の一元化**: `EditorPage` が単一の `useExpansionStream` を所有し `create`（自動=SSE/手動=単発）/`stop` を `MindMapToolbar`（controlled 化）と `EditorTopBar` に配線＝再生成と停止が同一ストリームに作用。autoStart も EditorPage へ集約。**ドキュメント先行更新**: DESIGN §6.2/§6.5（本タスクの UX を §2.1.1 に内包）。**テスト**: generatingUi 8（status×nodeCount 分岐）。4ゲート green（型/Lint/Vitest **web119**/ビルド）＋E2E 1 pass。完了後 fitView は T22）
 
 ### T22: 生成完了後の全体表示ズーム（fitView 自動調整）
 
@@ -336,7 +336,7 @@
 - **やること（テスト含む）**: 生成完了イベントで一度だけ fitView（全ノード可視）。段階描画中は毎回 fit しすぎない（完了時/停止時に整える）。**フロー/ユニット**: status が `generating`→`idle`/`stopped` に変化した時のみ fit をトリガする分岐（副作用境界を薄く保ちテスト可能に）。
 - **依存タスク**: T21
 - **推奨ブランチ名**: `feature/T22-fit-view-on-complete`
-- **状態**: 未着手
+- **状態**: done（**生成完了後の fitView＋ズーム UI** を実装。判定を純粋関数 `fitViewOnComplete`（`shouldFitViewOnStatusChange`＝`generating`→`idle` の遷移のみ true）に切り出し、`FitViewController`（React Flow 内側で `useReactFlow().fitView` を status 遷移時に一度だけ・rAF でノード反映後に実行・段階描画/error では発火せず手動ズームは尊重）を追加。既定の `<Controls/>` をデザイン準拠の `ZoomControls`（右下に拡大/縮小/倍率表示/全体表示・`useReactFlow`＋`useStore` の transform で倍率）に差し替え。**ドキュメント先行更新**: DESIGN §3.3（完了時 fitView・ズーム UI）。**テスト**: fitViewOnComplete 5（遷移分岐）。全ゲート green（型/Lint/**Vitest shared9・api81・web124**/ビルド、最大チャンク 309kB・500kB 警告なし）＋E2E 1 pass。**マイルストーン M6 完了**＝MindWeave デザイン（`MindmapApp.dc.html`）を 2 画面・ダーク/ライト・放射状・ノードツリー・生成中ロック/ローディング・完了後 fitView として実装）
 
 ---
 

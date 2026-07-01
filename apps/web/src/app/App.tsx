@@ -1,11 +1,13 @@
-// アプリのルートコンポーネント（レイアウト＋ルーター）。
+// アプリのルートコンポーネント（テーマ＋ルーター）。
 import { BrowserRouter } from 'react-router-dom'
 import { AppRoutes } from './routes'
-import './app.css'
+import { ThemeProvider } from './ThemeProvider'
 
-/** ルーティングを内包したアプリ本体。 */
+/** テーマとルーティングを内包したアプリ本体。 */
 export const App = () => (
-  <BrowserRouter>
-    <AppRoutes />
-  </BrowserRouter>
+  <ThemeProvider>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  </ThemeProvider>
 )

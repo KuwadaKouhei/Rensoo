@@ -182,7 +182,14 @@ Rensoo/
 │   │   │   ├── main.tsx              # アプリ起動（React DOM マウント）
 │   │   │   ├── app/                  # アプリ骨格（ルーティング・プロバイダ・レイアウト）
 │   │   │   │   ├── App.tsx
-│   │   │   │   └── routes.tsx        # React Router のルート定義
+│   │   │   │   ├── routes.tsx        # React Router のルート定義（/ ＝ホーム, /map ＝編集）
+│   │   │   │   └── useTheme.ts       # ダーク/ライトのテーマ切替（.dark クラス・localStorage・M6）
+│   │   │   ├── pages/                # 画面コンテナ（ルートに対応・M6/T18）。features を組み立てるだけ
+│   │   │   │   ├── HomePage.tsx      # ホーム画面（ヒーロー＋一覧/紹介）
+│   │   │   │   └── EditorPage.tsx    # マインドマップ編集画面
+│   │   │   ├── components/           # shadcn/ui プリミティブ（ui/）＋画面横断レイアウト（layout/）
+│   │   │   │   ├── ui/               # Button/Input/Card 等（リポジトリ内に所有）
+│   │   │   │   └── layout/           # AppHeader 等（M6）
 │   │   │   ├── features/             # 機能（縦スライス）。1 feature = 1画面/機能単位
 │   │   │   │   ├── mind-map/         # マップ編集・描画（DESIGN §2.1）
 │   │   │   │   │   ├── MindMapCanvas.tsx        # React Flow 描画（store から供給）
@@ -204,10 +211,11 @@ Rensoo/
 │   │   │   │   ├── associations.ts
 │   │   │   │   ├── maps.ts
 │   │   │   │   └── errors.ts         # APIエラー→日本語メッセージ変換
-│   │   │   ├── mindmap-layout/       # 拡張点: layout()（Dagre/ELK 差替）
+│   │   │   ├── mindmap-layout/       # 拡張点: layout()（Dagre/Radial/ELK 差替）
 │   │   │   │   ├── layout.ts         # LayoutFn 型・入出力型
-│   │   │   │   ├── dagreLayout.ts    # 第一実装
-│   │   │   │   └── dagreLayout.test.ts
+│   │   │   │   ├── dagreLayout.ts    # 第一実装（階層・左上原点）
+│   │   │   │   ├── radialLayout.ts   # 第二実装＝既定（放射状・中心原点・M6/T20）
+│   │   │   │   └── *.test.ts
 │   │   │   ├── auth/                 # Supabase Auth クライアント（認証のみ）
 │   │   │   │   └── supabaseClient.ts
 │   │   │   └── ui/                   # 汎用プレゼンテーション部品（ロジックなし）

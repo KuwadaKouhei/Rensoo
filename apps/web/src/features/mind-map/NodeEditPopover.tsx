@@ -28,7 +28,8 @@ export const NodeEditPopover = () => {
     setChildText('')
   }, [selectedNodeId, node?.text])
 
-  if (!node) {
+  // 生成中は編集ポップオーバーを開かない（生成完了後に編集/削除を再有効化・T21）。
+  if (!node || status === 'generating') {
     return null
   }
 
@@ -60,11 +61,7 @@ export const NodeEditPopover = () => {
       </div>
 
       {mode === 'manual' && (
-        <Button
-          type="button"
-          onClick={() => void expandNode(node.id)}
-          disabled={status === 'generating'}
-        >
+        <Button type="button" onClick={() => void expandNode(node.id)}>
           この語を展開
         </Button>
       )}
