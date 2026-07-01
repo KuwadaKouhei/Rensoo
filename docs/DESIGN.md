@@ -298,6 +298,11 @@ export type LayoutFn = (input: LayoutInput) => readonly PositionedNode[];
 > `layout()` 抽象があるため、放射状レイアウトの追加は `apps/web/src/mindmap-layout/radialLayout.ts` を1ファイル足し、
 > `MindMapCanvas` の既定供給関数を差し替えるだけで完結した（Dagre 実装・ドメイン・ストアは無改変）。拡張点の設計どおり。
 
+**完了時 fitView（M6・T22）**: 生成が終わった瞬間（store `status` が `generating`→`idle`）だけ React Flow の `fitView` で
+全体が収まるようズームを自動調整する（`shouldFitViewOnStatusChange` 純粋関数で判定・`FitViewController`）。段階描画の
+毎バッチや失敗（error）では発火させず、以後の手動ズーム/パンは尊重する（無限追従しない）。右下のズーム UI（`ZoomControls`：
+拡大/縮小/倍率/全体表示）も同 API（`useReactFlow`）で提供する。
+
 ### 3.4 拡張点を「あえて設けない」もの（過剰設計の回避）
 
 - **外部ジョブキュー（BullMQ/Redis）**: 1マップ最大10コール程度（FEASIBILITY）。インメモリのキュー＋ロックで足り、将来スケール時に差し替える（今は抽象化しない）。

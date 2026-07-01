@@ -7,7 +7,6 @@ import { useMemo } from 'react'
 import {
   Background,
   BackgroundVariant,
-  Controls,
   ReactFlow,
   type Edge,
   type Node,
@@ -19,6 +18,8 @@ import { radialLayout } from '../../mindmap-layout/radialLayout'
 import type { LayoutFn } from '../../mindmap-layout/layout'
 import { useMindMapStore } from '../../store/mindMapStore'
 import { isInteractionLocked } from './generatingUi'
+import { FitViewController } from './FitViewController'
+import { ZoomControls } from './ZoomControls'
 import {
   mindMapNodeTypes,
   nodeTypeForDepth,
@@ -108,7 +109,8 @@ export const MindMapCanvas = ({ onNodeSelect, layout = radialLayout }: MindMapCa
       style={{ background: 'var(--mm-bg2)' }}
     >
       <Background variant={BackgroundVariant.Lines} gap={42} color="var(--mm-grid)" />
-      <Controls />
+      <FitViewController />
+      <ZoomControls />
     </ReactFlow>
   )
 }

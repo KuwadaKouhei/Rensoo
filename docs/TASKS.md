@@ -1,6 +1,6 @@
 # Rensoo タスク分解 (TASKS)
 
-- ステータス: T01〜T16 done。**M6（UI 大規模改修 / T17〜T22）を追加＝次イテレーション**
+- ステータス: T01〜T16 done。**M6（UI 大規模改修 / T17〜T22）done ＝ MindWeave デザイン実装完了**
 - 最終更新: 2026-07-01
 - 上位入力: docs/DESIGN.md / docs/REQUIREMENTS.md（AC-1〜13） / docs/DATABASE.md / docs/DIRECTORY_STRUCTURE.md
 - Git 運用: docs/GIT_CONVENTIONS.md（1タスク=1機能=1ブランチ=1PR、`feature/<タスクID>-<slug>`、Conventional Commits）
@@ -336,7 +336,7 @@
 - **やること（テスト含む）**: 生成完了イベントで一度だけ fitView（全ノード可視）。段階描画中は毎回 fit しすぎない（完了時/停止時に整える）。**フロー/ユニット**: status が `generating`→`idle`/`stopped` に変化した時のみ fit をトリガする分岐（副作用境界を薄く保ちテスト可能に）。
 - **依存タスク**: T21
 - **推奨ブランチ名**: `feature/T22-fit-view-on-complete`
-- **状態**: 未着手
+- **状態**: done（**生成完了後の fitView＋ズーム UI** を実装。判定を純粋関数 `fitViewOnComplete`（`shouldFitViewOnStatusChange`＝`generating`→`idle` の遷移のみ true）に切り出し、`FitViewController`（React Flow 内側で `useReactFlow().fitView` を status 遷移時に一度だけ・rAF でノード反映後に実行・段階描画/error では発火せず手動ズームは尊重）を追加。既定の `<Controls/>` をデザイン準拠の `ZoomControls`（右下に拡大/縮小/倍率表示/全体表示・`useReactFlow`＋`useStore` の transform で倍率）に差し替え。**ドキュメント先行更新**: DESIGN §3.3（完了時 fitView・ズーム UI）。**テスト**: fitViewOnComplete 5（遷移分岐）。全ゲート green（型/Lint/**Vitest shared9・api81・web124**/ビルド、最大チャンク 309kB・500kB 警告なし）＋E2E 1 pass。**マイルストーン M6 完了**＝MindWeave デザイン（`MindmapApp.dc.html`）を 2 画面・ダーク/ライト・放射状・ノードツリー・生成中ロック/ローディング・完了後 fitView として実装）
 
 ---
 
