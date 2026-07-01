@@ -284,9 +284,19 @@ export interface PositionedNode {
   readonly id: string;
   readonly position: { x: number; y: number };
 }
-/** 実装: dagreLayout / elkLayout。フロント側の純粋関数として差し替え可能。 */
+/** 実装: dagreLayout / radialLayout / elkLayout。フロント側の純粋関数として差し替え可能。 */
 export type LayoutFn = (input: LayoutInput) => readonly PositionedNode[];
 ```
+
+**実装（M6 で第2実装を追加）**:
+
+| 実装 | 特徴 | 座標系 | 位置づけ |
+|---|---|---|---|
+| `dagreLayout`（第一） | 階層（ツリー）配置。TB/LR 対応 | 左上原点 | 汎用・注入可能な代替 |
+| `radialLayout`（第二・**既定**） | 起点を中心に子を同心円状へ再帰配置（MindWeave デザインの放射状マップ） | **中心原点**（React Flow は `nodeOrigin=[0.5,0.5]` で各ノード中心を合わせる） | M6 の既定レイアウト |
+
+> `layout()` 抽象があるため、放射状レイアウトの追加は `apps/web/src/mindmap-layout/radialLayout.ts` を1ファイル足し、
+> `MindMapCanvas` の既定供給関数を差し替えるだけで完結した（Dagre 実装・ドメイン・ストアは無改変）。拡張点の設計どおり。
 
 ### 3.4 拡張点を「あえて設けない」もの（過剰設計の回避）
 

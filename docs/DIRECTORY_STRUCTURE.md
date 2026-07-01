@@ -211,10 +211,11 @@ Rensoo/
 │   │   │   │   ├── associations.ts
 │   │   │   │   ├── maps.ts
 │   │   │   │   └── errors.ts         # APIエラー→日本語メッセージ変換
-│   │   │   ├── mindmap-layout/       # 拡張点: layout()（Dagre/ELK 差替）
+│   │   │   ├── mindmap-layout/       # 拡張点: layout()（Dagre/Radial/ELK 差替）
 │   │   │   │   ├── layout.ts         # LayoutFn 型・入出力型
-│   │   │   │   ├── dagreLayout.ts    # 第一実装
-│   │   │   │   └── dagreLayout.test.ts
+│   │   │   │   ├── dagreLayout.ts    # 第一実装（階層・左上原点）
+│   │   │   │   ├── radialLayout.ts   # 第二実装＝既定（放射状・中心原点・M6/T20）
+│   │   │   │   └── *.test.ts
 │   │   │   ├── auth/                 # Supabase Auth クライアント（認証のみ）
 │   │   │   │   └── supabaseClient.ts
 │   │   │   └── ui/                   # 汎用プレゼンテーション部品（ロジックなし）

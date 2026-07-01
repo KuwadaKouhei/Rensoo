@@ -316,7 +316,7 @@
 - **やること（テスト含む）**: エッジ（親→子）から根＝depth0 起点にツリーを構築し、選択をキャンバスと同期。**重点ユニット**: `buildNodeTree`（親子階層・順序・空/単一ノード・数十〜百ノードで破綻なし・孤立なし前提の整合）。
 - **依存タスク**: T18
 - **推奨ブランチ名**: `feature/T20-node-tree-sidebar`
-- **状態**: 未着手
+- **状態**: done（**放射状レイアウト＋カスタムノード＋サイドバーのノードツリー**を実装。①`mindmap-layout/radialLayout`（layout() 第2実装＝既定。起点を中心に子を同心円状へ再帰配置する純粋関数・中心原点座標・端点欠落エッジ/サイクル保護・孤立ノードも配置）。②`MindMapCanvas` を radial 既定＋`nodeOrigin=[0.5,0.5]`＋カスタムノード（`nodes/mindMapNodeTypes`＝root/branch/leaf をデザイン準拠でトークン配色・中心の不可視 Handle で線がノード中心から出る）＋深さ別の線太さ＋`Background` グリッド（`--mm-grid`）に更新。座標算出は nodes/edges/layout の memo、選択ハイライトは selectedNodeId で再レイアウトせず反映。③`features/mind-map/buildNodeTree`（edges から親子ツリーを前順で平坦化する純粋関数）＋`NodeTreePanel`（サイドバー 272px・ツリー・選択でキャンバスと相互ハイライト・ノード数フッター・ホーム戻り）。`EditorPage` をサイドバー＋キャンバスの2ペインへ再構成。ホームの一覧に統合済みの `MapListPanel` は編集画面から撤去（`HomeMapGrid` が後継）。**ドキュメント先行更新**: DESIGN §3.3（radial を第2実装＝既定として明記）、DIRECTORY_STRUCTURE（radialLayout 配置）。**テスト**: radialLayout 8（決定性・放射関係・境界・数十ノード）＋buildNodeTree 7（階層・順序・到達不能取りこぼしなし・サイクル）。4ゲート green（型/Lint/Vitest **web111**/ビルド、最大チャンク 305kB）＋E2E 1 pass（ノードラベルはツリーにも出るため canvas スコープに限定）。生成中ロック/ローディングは T21、完了後 fitView は T22）
 
 ### T21: 生成中の操作制御＋ローディング表示（クリック禁止・背景うっすら／完了後に編集可）
 
