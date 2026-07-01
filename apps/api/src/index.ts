@@ -17,8 +17,10 @@ if (!apiKey) {
 }
 
 const client = new Anthropic({ apiKey })
+// 空文字・空白のみ（例: .env の `ASSOCIATION_MODEL=`）は未指定として扱う（既定モデルへ倒す）。
+const associationModel = process.env.ASSOCIATION_MODEL?.trim() || undefined
 const associationProvider = new ClaudeAssociationProvider(client, {
-  model: process.env.ASSOCIATION_MODEL,
+  model: associationModel,
 })
 
 // JWT 検証（DESIGN §7.4）。SUPABASE_URL があれば JWKS で検証する。未設定なら認証なし（ゲストのみ）。
