@@ -3,8 +3,9 @@
 //       右上=アカウント（ログイン・保存） / 右=ノード編集サイドバー（ノード選択時のみ）。
 // 生成の実行/停止は本ページが単一の展開コントローラ（useExpansionStream）で所有し、コントロールから作用させる。
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
 import { MindMapCanvas } from '../features/mind-map/MindMapCanvas'
 import { EditorControls } from '../features/mind-map/EditorControls'
 import { NodeEditSidebar } from '../features/mind-map/NodeEditSidebar'
@@ -28,6 +29,8 @@ export const EditorPage = () => {
   const autoStartKeyword = (location.state as EditorLocationState | null)?.keyword
 
   const { start, stop } = useExpansionStream()
+  // 左上の生成コントロールパネルの開閉（ハンバーガーでトグル・既定は開）。
+  const [controlsOpen, setControlsOpen] = useState(true)
 
   // 単一の生成トリガ（自動=SSE 連鎖 / 手動=単発）。空入力は無視。
   const create = useCallback(
@@ -66,9 +69,18 @@ export const EditorPage = () => {
       <div className="relative flex-1 overflow-hidden">
         <EditorTopBar />
 
-        {/* 左上: 生成コントロール（展開モード・連想件数・作成/停止/再生成・状態）。オーバーレイより前面に置く。 */}
-        <div className="absolute left-3 top-3 z-30">
-          <EditorControls onCreate={create} onStop={stop} />
+        {/* 左上: 生成コントロール。ハンバーガーで開閉トグル。オーバーレイより前面に置く。 */}
+        <div className="absolute left-3 top-3 z-30 flex flex-col items-start gap-2">
+          <button
+            type="button"
+            onClick={() => setControlsOpen((v) => !v)}
+            aria-label={controlsOpen ? '生成コントロールを閉じる' : '生成コントロールを開く'}
+            aria-expanded={controlsOpen}
+            className="inline-flex size-10 items-center justify-center rounded-lg border border-border bg-card/95 text-foreground shadow-lg backdrop-blur transition-colors hover:bg-muted"
+          >
+            {controlsOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
+          {controlsOpen && <EditorControls onCreate={create} onStop={stop} />}
         </div>
 
         {/* 右上: アカウント（ログイン・保存）。 */}
