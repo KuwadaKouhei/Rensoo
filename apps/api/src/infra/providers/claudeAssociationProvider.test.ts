@@ -39,6 +39,34 @@ describe('ClaudeAssociationProvider', () => {
     expect(result.meta?.model).toBe('claude-opus-4-8')
   })
 
+  it('空文字のモデル指定は既定モデルに倒す（ASSOCIATION_MODEL= の空文字対策）', async () => {
+    let sentModel: string | undefined
+    const provider = new ClaudeAssociationProvider(
+      {
+        messages: {
+          create: async (params: { model: string }) => {
+            sentModel = params.model
+            return messageWithText('{"words":[{"word":"星"}]}')
+          },
+        },
+      } as unknown as Anthropic,
+      { model: '' },
+    )
+    const result = await provider.associate(req)
+    // Anthropic には空文字ではなく既定モデルが渡る（4xx を誘発しない）。
+    expect(sentModel).toBe('claude-haiku-4-5')
+    expect(result.meta?.model).toBe('claude-haiku-4-5')
+  })
+
+  it('空白のみのモデル指定も既定モデルに倒す', async () => {
+    const provider = new ClaudeAssociationProvider(
+      stubClient(async () => messageWithText('{"words":[{"word":"星"}]}')),
+      { model: '   ' },
+    )
+    const result = await provider.associate(req)
+    expect(result.meta?.model).toBe('claude-haiku-4-5')
+  })
+
   it('JSON として解釈できない応答は invalid_response として throw する', async () => {
     const provider = new ClaudeAssociationProvider(
       stubClient(async () => messageWithText('これはJSONではありません')),

@@ -40,7 +40,10 @@ export class ClaudeAssociationProvider implements AssociationProvider {
     private readonly client: Anthropic,
     options: ClaudeAssociationProviderOptions = {},
   ) {
-    this.model = options.model ?? DEFAULT_MODEL
+    // 空文字・空白のみのモデル指定は「未指定」とみなし既定へ倒す。
+    // 環境変数 `ASSOCIATION_MODEL=`（空文字）を有効値として Anthropic に送ると 4xx になるため、
+    // `??` ではなく trim+論理和で弾く（`"" ?? x` は "" のままになる罠を避ける）。
+    this.model = options.model?.trim() || DEFAULT_MODEL
   }
 
   async associate(req: AssociateRequest): Promise<AssociateResult> {
