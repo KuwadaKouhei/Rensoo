@@ -296,7 +296,7 @@
 - **やること（テスト含む）**: `/`=ホーム、`/map`（必要なら `/map/:id`）=編集。編集画面で従来どおり作成→描画→展開→編集が動く。ホームの「作成」から編集画面へ遷移して生成が始まる。**統合/フローテスト**: ルート解決とホーム→編集の遷移で既存生成フロー結線が壊れていないこと。
 - **依存タスク**: T17
 - **推奨ブランチ名**: `feature/T18-two-screen-routing`
-- **状態**: 未着手
+- **状態**: done（**2 画面ルーティング**（`/`＝ホーム `pages/HomePage`／`/map`＝編集 `pages/EditorPage`）へ再編。ドメイン状態（Zustand）は画面共有のため、ホームの「生成する」→`useNavigate('/map', { state: { keyword } })` で遷移し、`MindMapToolbar` の `autoStartKeyword` が初回マウント時に一度だけ生成を開始（自動=SSE/手動=単発、`mode` 追従）。あわせて **M6 のデザイン基盤**を導入: `index.css` をデザイントークン（ダーク=1a `.dark`／ライト=1b `:root`、`--mm-*` 系＋フォント Space Grotesk/Zen Kaku Gothic New）に刷新、`app/useTheme`＋`app/ThemeProvider`＋`components/layout/ThemeToggle`・`AppHeader`（ロゴ＋テーマ切替＋ログイン）を追加。既定はダーク。**ドキュメント先行更新**: DESIGN §2.1.1（画面/ルーティング）、DIRECTORY_STRUCTURE（`pages/`・`components/layout/`・`useTheme` 配置）。**テスト**: `useTheme` 純粋部分6（初期値解決・DOM 反映）。E2E をホーム→「生成する」→`/map` 遷移→自走展開の新フローへ更新し 1 pass。4ゲート green（型/Lint/Vitest **web90**/ビルド。最大チャンク 296kB・500kB 警告なし）。ホームの機能紹介/保存一覧の出し分けは T19、編集画面のサイドバー/放射状/ロック/fitView は T20〜T22 で拡充）
 
 ### T19: ホーム画面（未ログイン=機能紹介／ログイン=保存マップ一覧＋作成入力）
 

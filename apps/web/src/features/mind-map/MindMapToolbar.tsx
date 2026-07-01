@@ -3,15 +3,20 @@
 // 以降はノードクリックで1段ずつ手動展開（連鎖しない・AC-4,5）。
 // 生成中はローディング＋（自動時のみ）停止、停止後は停止理由、失敗時は日本語エラー＋再試行。
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '../../ui/Button'
 import { useMindMapStore } from '../../store/mindMapStore'
 import { useExpansionStream } from './useExpansionStream'
 import { STOP_REASON_MESSAGE } from './runExpansionFlow'
 import { createAssociationMap } from './createAssociationMap'
 
-export const MindMapToolbar = () => {
-  const [keyword, setKeyword] = useState('')
+export interface MindMapToolbarProps {
+  /** ホーム画面から遷移してきた際に、この語で生成を自動開始する（一度だけ・M6/T18）。 */
+  readonly autoStartKeyword?: string
+}
+
+export const MindMapToolbar = ({ autoStartKeyword }: MindMapToolbarProps = {}) => {
+  const [keyword, setKeyword] = useState(autoStartKeyword ?? '')
   const status = useMindMapStore((s) => s.status)
   const mode = useMindMapStore((s) => s.mode)
   const errorMessage = useMindMapStore((s) => s.errorMessage)
@@ -22,13 +27,24 @@ export const MindMapToolbar = () => {
 
   const isGenerating = status === 'generating'
 
-  const create = (): void => {
+  const create = (value: string = keyword): void => {
     if (mode === 'auto') {
-      start(keyword) // 自走展開（SSE・連鎖）
+      start(value) // 自走展開（SSE・連鎖）
     } else {
-      void createAssociationMap(keyword) // 単発（起点＋1段、連鎖しない）
+      void createAssociationMap(value) // 単発（起点＋1段、連鎖しない）
     }
   }
+
+  // ホームから渡された起点キーワードで、初回マウント時に一度だけ生成を開始する（M6/T18）。
+  const autoStarted = useRef(false)
+  useEffect(() => {
+    const kw = autoStartKeyword?.trim()
+    if (kw && !autoStarted.current) {
+      autoStarted.current = true
+      create(kw)
+    }
+    // 初回マウント時のみ実行（autoStarted ガード）。create は最新 mode を参照する。
+  }, [autoStartKeyword])
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -85,7 +101,7 @@ export const MindMapToolbar = () => {
         <div role="alert" className="mindmap-toolbar__error">
           <span>{errorMessage}</span>
           {errorRetryable && (
-            <Button type="button" variant="secondary" onClick={create}>
+            <Button type="button" variant="secondary" onClick={() => create()}>
               再試行
             </Button>
           )}
