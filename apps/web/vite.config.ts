@@ -1,11 +1,17 @@
 import { defineConfig } from 'vite'
+import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 // バンドル分割（NFR-2 / 初期ロード最適化）。
 // 重い描画系（React Flow＋Dagre）と React ランタイムを vendor チャンクに分け、
 // アプリコードの変更時にライブラリ部のキャッシュが効くようにする。
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  // `@/` を src/ に解決（shadcn/ui 規約）。tsconfig の paths と一致させる。
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
   build: {
     rollupOptions: {
       output: {

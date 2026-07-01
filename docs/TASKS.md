@@ -286,7 +286,7 @@
 - **やること（テスト含む）**: Tailwind＋shadcn/ui を初期化し、プリミティブを最低1つ導入。既存フロー（作成→描画→展開→編集→保存）が**視覚破綻なく従来どおり動く**（型/Lint/ビルド green・既存 Vitest 継続 pass）。`manualChunks` の分割方針を維持しバンドル肥大を抑える（NFR-2）。**ユニット**: `cn` の結合・Tailwind 衝突解決。
 - **依存タスク**: 現行 main（T16 まで done）
 - **推奨ブランチ名**: `feature/T17-shadcn-ui-foundation`
-- **状態**: 未着手
+- **状態**: done（**Tailwind CSS v4（`@tailwindcss/vite`）＋ shadcn/ui 方式**を導入。`@/`→`src/` エイリアスを vite/vitest/tsconfig に統一。`src/index.css`（Tailwind＋neutral トークン＝CSS 変数/`@theme`）、`src/lib/utils.ts`（`cn`＝clsx＋tailwind-merge）、`src/components/ui/button.tsx`（shadcn Button・cva＋Radix Slot）、`components.json` を追加。既存 `src/ui/Button` は**API 互換のまま**（primary→default / secondary→secondary）shadcn Button へ委譲＝5箇所の呼び出しは無改変。`main.tsx` で `index.css` を先頭読込。**ドキュメント先行更新**: TECH_STACK §2.5.1（Tailwind＋shadcn 採用理由）、DIRECTORY_STRUCTURE（`components/ui/`・`lib/`・`index.css` 配置）、REQUIREMENTS §8.1（M6 の AC-14〜19）。**テスト**: `cn` 5 ケース（結合・falsy 無視・条件オブジェクト・Tailwind 衝突後勝ち・非衝突保持）。4ゲート green（型/Lint/Vitest shared9・api81・**web84**/ビルド）＋E2E 1 pass。最大チャンク 290kB（gzip ~88kB・**500kB 警告なし**、manualChunks 維持）。既存フロー（作成→描画→展開→編集→保存）は無破綻。画面の本格再構成は T18 以降）
 
 ### T18: 2画面ルーティング（ホーム `/` ＋ 編集 `/map`）への再編
 

@@ -139,6 +139,20 @@
   - **レイアウトを d3-hierarchy にする案**: 木に特化し軽量だが、将来 DAG 的（再展開で合流）になった場合に Dagre/ELK の方が素直。Dagre を主、ELK を高機能側の差し替え先として確保。
 - **出典**: https://reactflow.dev/learn/layouting/layouting / https://reactflow.dev/examples/layout/dagre / https://reactflow.dev/examples/layout/elkjs / https://reactflow.dev/examples/layout/expand-collapse
 
+### 2.5.1 スタイリング / UI コンポーネント: Tailwind CSS ＋ shadcn/ui（M6 で追加）
+
+- **選定**: **Tailwind CSS v4**（`@tailwindcss/vite` プラグイン・CSS ファースト設定）を採用し、UI プリミティブは **shadcn/ui** 方式（コンポーネントをリポジトリ内にコピーして所有＝依存ライブラリではない）で構築する。ユーティリティは **clsx ＋ tailwind-merge**（`cn`）、バリアントは **class-variance-authority (cva)**、アクセシブルな土台は **Radix UI**（shadcn が内部利用）、アイコンは **lucide-react**。
+- **採用理由**:
+  - MVP は素の CSS（`app.css`）だったが、M6 で **2画面構成・ホーム/編集の本格 UI・生成中オーバーレイ・サイドメニュー**を作るため、一貫したデザイントークンとアクセシブルな部品が必要になった。Tailwind＋shadcn/ui は**トークン（CSS 変数）で見た目を一元管理**でき、CODING/PLAN_PHILOSOPHY の「見た目の変動点を局所化」に合う。
+  - shadcn/ui は**ライブラリ依存ではなくコード所有**方式。`components/ui/` に置いた部品を自由に改変でき、ロックインが小さい（PLAN_PHILOSOPHY「過剰なロックインの回避」）。Radix ベースでキーボード操作/フォーカス管理などアクセシビリティを最初から確保。
+  - Tailwind v4 は `@tailwindcss/vite` で Vite と親和し、`tailwind.config.js` 不要の CSS ファースト。既存の `manualChunks`（NFR-2）方針と両立する。
+- **類似技術との比較**:
+  - **MUI / Chakra / Ant Design**: 完成度は高いが、ランタイム依存が重くデザインのロックインが強い。React Flow ノード等の細かな自作 UI と混ぜると重複・肥大しやすい。shadcn/ui のコード所有＋Tailwind の方が軽量で自由度が高く不採用。
+  - **素の CSS / CSS Modules 継続**: 画面数が増える M6 では、トークン共有・状態バリアント・a11y を毎回手書きするコストが高い。段階移行の起点として Tailwind＋shadcn を採用。
+  - **Tailwind v3（PostCSS 設定）**: 動作するが、Vite では v4＋`@tailwindcss/vite` の方が設定が簡潔で最新。v4 を採用。
+- **配置**: プリミティブは `apps/web/src/components/ui/`、`cn` 等は `apps/web/src/lib/`、トークン/テーマは `apps/web/src/index.css`（`@theme`／CSS 変数）。詳細は DIRECTORY_STRUCTURE を参照。
+- **出典**: https://ui.shadcn.com/docs / https://tailwindcss.com/docs/installation/using-vite / https://tailwindcss.com/blog/tailwindcss-v4
+
 ### 2.6 LLM 連携: Anthropic Claude（Haiku 4.5）＋ 構造化出力 ＋ 抽象層
 
 - **選定**:
