@@ -1,5 +1,7 @@
-// 生成完了時に一度だけ全体表示へ整える（M6・T22）。React Flow の内側で使う（useReactFlow が要）。
-// status が generating→idle に変化した瞬間だけ fitView する。段階描画中や手動ズーム後は追従しない。
+// 全体表示への自動フィット（M6・T22 / 調整）。React Flow の内側で使う（useReactFlow が要）。
+// - 生成中: ノードが増えるたびに追従して全体を収める（遷移直後〜生成中も全体が見える）。
+// - 完了時（generating→idle）: 最後に一度整える。
+// - 完了後（idle 継続）: 手動ズーム/パンを尊重し、追従しない。
 
 import { useEffect, useRef } from 'react'
 import { useReactFlow } from '@xyflow/react'
@@ -8,21 +10,22 @@ import { shouldFitViewOnStatusChange } from './fitViewOnComplete'
 
 export const FitViewController = () => {
   const status = useMindMapStore((s) => s.status)
+  const nodeCount = useMindMapStore((s) => s.nodes.length)
   const { fitView } = useReactFlow()
   const prev = useRef(status)
 
   useEffect(() => {
-    const fit = shouldFitViewOnStatusChange(prev.current, status)
+    const completed = shouldFitViewOnStatusChange(prev.current, status)
     prev.current = status
-    if (!fit) return
-    // ノード反映後に整えるため次フレームで実行する。
-    // maxZoom=0.5 で拡大を 50% に抑える。ReactFlow の既定 minZoom も 0.5 のため、
-    // 生成完了時のズームは概ね 50% で全体の中心にフィットする（要望: ホーム生成時 ~50%）。
+    // 生成中（各バッチ）と完了時のみフィットする。完了後の idle 継続では追従しない（手動操作を尊重）。
+    if (status !== 'generating' && !completed) return
+    if (nodeCount === 0) return
+    // ノード反映後に整えるため次フレームで実行する。全体が収まるよう padding を取る（拡大率は抑制しない）。
     const raf = requestAnimationFrame(() => {
-      void fitView({ duration: 400, padding: 0.2, maxZoom: 0.5 })
+      void fitView({ duration: 400, padding: 0.2 })
     })
     return () => cancelAnimationFrame(raf)
-  }, [status, fitView])
+  }, [status, nodeCount, fitView])
 
   return null
 }

@@ -2,7 +2,7 @@
 // キーワード入力＋作成／停止・再生成、展開モード、連想件数、生成状態（追加中・エラー/再試行・停止理由・手動ヒント）をまとめる。
 // 生成の実行/停止は親（EditorPage）が単一の展開コントローラで所有し、onCreate/onStop で受け取る。
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { useMindMapStore } from '../../store/mindMapStore'
 import { GenerationSettingsPanel } from '../generation-settings/GenerationSettingsPanel'
@@ -31,6 +31,16 @@ export const EditorControls = ({ onCreate, onStop }: EditorControlsProps) => {
   const stopReason = useMindMapStore((s) => s.stopReason)
   const nodeCount = useMindMapStore((s) => s.nodes.length)
   const center = useMindMapStore((s) => s.nodes.find((n) => n.depth === 0)?.text ?? '')
+
+  // キーワード入力の初期値に、ホームで生成した起点キーワード（＝中心ノードの語）を一度だけ入れる。
+  // 以後の手入力は尊重する（上書きしない）。
+  const seeded = useRef(false)
+  useEffect(() => {
+    if (!seeded.current && center) {
+      setKeyword(center)
+      seeded.current = true
+    }
+  }, [center])
 
   const isGenerating = status === 'generating'
 

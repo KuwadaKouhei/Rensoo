@@ -103,6 +103,9 @@ export const MindMapCanvas = ({ onNodeSelect, layout = radialLayout }: MindMapCa
       nodeOrigin={NODE_ORIGIN}
       onNodeClick={handleNodeClick}
       fitView
+      fitViewOptions={{ padding: 0.2 }}
+      // 大きなマップでも全体が収まるよう縮小側の下限を下げる（既定 0.5 だと大きいマップが収まらない）。
+      minZoom={0.15}
       // ドメイン状態は React Flow に持たせないため、ドラッグ等の内蔵編集はストア経由でのみ反映する方針。
       nodesDraggable={false}
       proOptions={{ hideAttribution: true }}
