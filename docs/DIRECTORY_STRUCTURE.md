@@ -158,7 +158,7 @@ DESIGN.md が限定した**3つの拡張点**それぞれに、抽象（IF）と
 | 新しいドメイン純粋ロジック（FW 非依存） | `apps/api/src/domain/<scope>/` または共有なら `packages/shared/src/domain/<scope>/` |
 | 新しい外部サービス実装 | `apps/api/src/infra/<種別>/`（`providers/` `repositories/` 等） |
 | 新しい UI 画面 | `apps/web/src/features/<feature>/` を新設し、ルートを `apps/web/src/app/routes.tsx` に登録 |
-| 新しい UI 部品（feature 横断の純粋表示部品） | `apps/web/src/ui/`（汎用プレゼンテーション部品。ロジックを持たない） |
+| 新しい UI 部品（feature 横断の純粋表示部品） | shadcn/ui プリミティブは `apps/web/src/components/ui/`、独自の薄い部品は `apps/web/src/ui/`（いずれもロジックを持たない） |
 | 新しいフロントドメイン状態・操作 | `apps/web/src/store/` の既存ストアに追記、または新ストアファイル |
 
 ### 3.4 共有（shared / common）の肥大化抑制
@@ -317,7 +317,10 @@ Rensoo/
 | `src/api-client/` | 型付き fetch・Zod 検証・SSE 受信・エラー日本語化・再試行 | shared(schema) | §2.1 APIクライアント |
 | `src/mindmap-layout/` | **拡張点 layout()**。Dagre 第一・ELK 差替先。純粋関数 | shared(domain mind-map 型) | §3.3 layout() |
 | `src/auth/` | Supabase Auth クライアント（ログイン・JWT 取得）。認証のみ | @supabase/supabase-js | §2.1 認証 UI の足回り |
-| `src/ui/` | 汎用プレゼンテーション部品（ロジックを持たない見た目部品） | （なし） | 共有 UI 抑制の受け皿 |
+| `src/ui/` | 汎用プレゼンテーション部品（ロジックを持たない見た目部品）。既存の薄い部品はここ、または `components/ui/` のプリミティブを包む | components/ui, lib | 共有 UI 抑制の受け皿 |
+| `src/components/ui/` | **shadcn/ui プリミティブ**（Button/Input/Card/Dialog 等・リポジトリ内にコピーして所有）。Tailwind＋cva＋Radix。ロジックは持たない | lib（`cn`）, Radix, cva | §2.5.1 スタイリング基盤（M6） |
+| `src/lib/` | UI 補助ユーティリティ（`cn`＝clsx＋tailwind-merge 等）。純粋関数 | clsx, tailwind-merge | §2.5.1 スタイリング基盤（M6） |
+| `src/index.css` | Tailwind ディレクティブ＋デザイントークン（CSS 変数/`@theme`）。全画面共通の見た目の源泉 | - | §2.5.1 トークン（M6） |
 | `e2e/` | Playwright ハッピーパス（1〜2本） | - | TEST_PHILOSOPHY |
 
 ### 5.2 `apps/api`（APIサーバー）— レイヤーと依存方向
