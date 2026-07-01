@@ -425,7 +425,7 @@ erDiagram
 // Request
 {
   "rootInput": "宇宙",
-  "settings": { "countPerNode": 6, "maxDepth": 3, "maxNodes": 50 }
+  "settings": { "countPerNode": 6, "maxDepth": 2, "maxNodes": 50 }
 }
 // Response: text/event-stream
 // event: node-batch   data: { "parentId": "...", "depth": 1, "words": [...] }
@@ -446,7 +446,7 @@ erDiagram
   "title": "宇宙の連想",
   "nodes": [ /* MindMapNode[] */ ],
   "edges": [ /* MindMapEdge[] */ ],
-  "settings": { "countPerNode": 6, "maxDepth": 3, "maxNodes": 50 }
+  "settings": { "countPerNode": 6, "maxDepth": 2, "maxNodes": 50 }
 }
 // Response 200
 { "id": "uuid", "title": "宇宙の連想", "updatedAt": "2026-06-26T..." }
@@ -503,7 +503,7 @@ export const associateRequestSchema = z.object({
 /** 自走展開設定 */
 export const generationSettingsSchema = z.object({
   countPerNode: z.number().int().min(3).max(10).default(6),
-  maxDepth: z.number().int().min(1).max(5).default(3),
+  maxDepth: z.number().int().min(1).max(5).default(2),
   maxNodes: z.number().int().min(2).max(100).default(50),
 });
 ```
@@ -519,7 +519,7 @@ export const generationSettingsSchema = z.object({
 | パラメータ | 既定値 | 範囲 | 根拠 |
 |---|---|---|---|
 | 1ノード生成件数 `countPerNode` | **6** | 3〜10 | REQUIREMENTS FR-4 の例示＋FEASIBILITY コスト試算と整合 |
-| 最大深さ `maxDepth` | **3** | 1〜5 | FR-13 の例示。深さ3で十分な広がり・コスト頭打ち |
+| 最大深さ `maxDepth` | **2** | 1〜5 | 自動生成は**第2世代まで**（中心の子=第1世代・孫=第2世代）。過剰な広がりとコストを抑える既定 |
 | 総ノード上限 `maxNodes` | **50** | 2〜100 | FR-13 の例示。FEASIBILITY のコスト試算（フル実行 0.01〜0.05 USD）の前提 |
 
 これらは生成設定 UI で範囲内調整可能（AC-2）。サーバーは受信値を Zod で範囲検証し、範囲外は 400。
@@ -732,7 +732,7 @@ sequenceDiagram
 
 ### 11.2 設計で確定済み（本書の決定）
 
-- 既定値: `countPerNode=6`（3〜10）、`maxDepth=3`（1〜5）、`maxNodes=50`（2〜100）。
+- 既定値: `countPerNode=6`（3〜10）、`maxDepth=2`（1〜5・自動生成は第2世代まで）、`maxNodes=50`（2〜100）。
 - 拡張点は3つ（`AssociationProvider` / `MindMapRepository` / `layout()`）に限定。
 - 自走展開は SSE ストリーミング、停止は接続クローズ＋サーバー側停止条件で二重に保護。
 - 認証は生成系=任意・保存系=必須、認可は JWT 検証＋ RLS の二重化。

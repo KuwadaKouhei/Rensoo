@@ -28,7 +28,7 @@ describe('saveMapRequestSchema（孤立エッジ検証）', () => {
     expect(result.success).toBe(false)
   })
 
-  it('settings 省略時は既定値（6 / 3 / 50）が適用される', () => {
+  it('settings 省略時は既定値（6 / 2 / 50・第2世代まで）が適用される', () => {
     const result = saveMapRequestSchema.safeParse({
       title: '空マップ',
       nodes: [{ id: 'n_root', text: '宇宙', depth: 0, origin: 'root' }],
@@ -37,7 +37,7 @@ describe('saveMapRequestSchema（孤立エッジ検証）', () => {
     })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.settings).toEqual({ countPerNode: 6, maxDepth: 3, maxNodes: 50 })
+      expect(result.data.settings).toEqual({ countPerNode: 6, maxDepth: 2, maxNodes: 50 })
     }
   })
 })

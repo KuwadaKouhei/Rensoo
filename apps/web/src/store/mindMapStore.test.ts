@@ -217,7 +217,7 @@ describe('useMindMapStore', () => {
     expect(s.nodes).toEqual([])
     expect(s.mode).toBe('auto')
     expect(s.status).toBe('idle')
-    expect(s.settings).toEqual({ countPerNode: 6, maxDepth: 3, maxNodes: 50 })
+    expect(s.settings).toEqual({ countPerNode: 6, maxDepth: 2, maxNodes: 50 })
   })
 
   it('startNewMap → appendChildren で状態が積み上がる', () => {
@@ -247,7 +247,7 @@ describe('useMindMapStore', () => {
     const s = useMindMapStore.getState()
     expect(s.mode).toBe('manual')
     expect(s.settings.countPerNode).toBe(8)
-    expect(s.settings.maxDepth).toBe(3)
+    expect(s.settings.maxDepth).toBe(2)
   })
 
   it('applyExpansionBatch でストアに root→子が積み上がる', () => {
