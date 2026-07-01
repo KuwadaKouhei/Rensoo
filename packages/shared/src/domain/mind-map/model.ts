@@ -38,9 +38,9 @@ export interface GenerationSettings {
   readonly maxNodes: number
 }
 
-/** 生成設定の既定値（DESIGN.md §6.1 で確定）。 */
+/** 生成設定の既定値（DESIGN.md §6.1 で確定）。maxDepth=2＝自動生成は第2世代まで（中心の子=第1世代・孫=第2世代）。 */
 export const DEFAULT_GENERATION_SETTINGS: GenerationSettings = {
   countPerNode: 6,
-  maxDepth: 3,
+  maxDepth: 2,
   maxNodes: 50,
 }

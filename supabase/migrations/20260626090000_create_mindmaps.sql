@@ -14,9 +14,9 @@ create table public.mindmaps (
                            check (char_length(title) between 1 and 100),
   root_keyword text        not null
                            check (char_length(root_keyword) between 1 and 100),
-  -- 生成設定（既定 6/3/50）。範囲検証の正本はアプリ層 Zod。DB はキー存在＋数値型のみ守る。
+  -- 生成設定（既定 6/2/50。maxDepth=2＝自動生成は第2世代まで）。範囲検証の正本はアプリ層 Zod。DB はキー存在＋数値型のみ守る。
   settings     jsonb       not null
-                           default '{"countPerNode":6,"maxDepth":3,"maxNodes":50}'::jsonb
+                           default '{"countPerNode":6,"maxDepth":2,"maxNodes":50}'::jsonb
                            check (
                              jsonb_typeof(settings->'countPerNode') = 'number'
                              and jsonb_typeof(settings->'maxDepth')   = 'number'

@@ -6,7 +6,8 @@ import { z } from 'zod'
  */
 export const generationSettingsSchema = z.object({
   countPerNode: z.number().int().min(3).max(10).default(6),
-  maxDepth: z.number().int().min(1).max(5).default(3),
+  // 既定 2＝自動生成は第2世代まで（中心の子=第1世代・孫=第2世代）。範囲は 1〜5 のまま。
+  maxDepth: z.number().int().min(1).max(5).default(2),
   maxNodes: z.number().int().min(2).max(100).default(50),
 })
 
