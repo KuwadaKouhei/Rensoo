@@ -3,7 +3,7 @@
 // 生成の実行/停止は本ページが単一の展開コントローラ（useExpansionStream）で所有し、
 // ツールバーの「作成/停止」とトップバーの「再生成」が同じストリームに作用するようにする。
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { MindMapCanvas } from '../features/mind-map/MindMapCanvas'
 import { MindMapToolbar } from '../features/mind-map/MindMapToolbar'
@@ -44,13 +44,21 @@ export const EditorPage = () => {
     [start],
   )
 
-  // ホームから渡された起点キーワードで、初回マウント時に一度だけ生成を開始する。
-  const started = useRef(false)
+  // ホームから渡された起点キーワードで、マウント時に一度だけ生成を開始する。
+  // 開始はマイクロタスクではなく次のタスクへ遅延する。これにより開発の StrictMode
+  // （mount→unmount→mount の二重実行）では、throwaway マウントの cleanup が保留中の開始を
+  // キャンセルし、本物のマウントでのみ生成が走る。ref ガードだと「開始直後に abort→再開されない」
+  // 競合で生成が始まらないため、遅延＋キャンセルで確実に一度だけ実行する。
   useEffect(() => {
     const kw = autoStartKeyword?.trim()
-    if (kw && !started.current) {
-      started.current = true
-      create(kw)
+    if (!kw) return
+    let cancelled = false
+    const timer = setTimeout(() => {
+      if (!cancelled) create(kw)
+    }, 0)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
     }
   }, [autoStartKeyword, create])
 
