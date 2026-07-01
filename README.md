@@ -109,8 +109,10 @@ Rensoo/
    ```
 
    `apps/api` の `dev` / `start` は `--env-file-if-exists=.env` で `apps/api/.env` を自動読み込みします
-   （ファイルが無くても起動は失敗せず、シェルの環境変数だけで動かすことも可能）。
+   （ファイルが無くても起動は失敗せず、シェルの環境変数だけで動かすことも可能）。フロント（`apps/web`）は
+   `cp apps/web/.env.example apps/web/.env` でコピーすれば Vite が自動読み込みします。
    Supabase 関連を設定しない場合、保存・認証機能は無効化され、ゲスト機能のみ動作します。
+   保存・ログインを有効化する手順は [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) を参照してください。
 
 3. API サーバーを起動します（既定ポート 8787）。
 
@@ -198,7 +200,10 @@ Rensoo/
 - 認可は **RLS（行レベルセキュリティ）** で本人のみアクセス可能に制御します（AC-11）。サーバーはユーザーの JWT を
   JWKS で検証し、その JWT を引き継いで Supabase にアクセスすることで RLS を効かせます。
 - マイグレーションは [`supabase/migrations/`](supabase/migrations/) にあります（テーブル定義と RLS を関心分離で 2 ファイルに分割）。
-  ローカルへの適用は Supabase CLI（例: `supabase db push`／`supabase migration up`）で行います。
+  クラウドの Supabase を使う場合は SQL Editor で 2 ファイルを順に実行、ローカルは Supabase CLI（例: `supabase db push`）で適用します。
+
+> **Supabase を使う場合の具体的な手順（プロジェクト作成・環境変数・JWT 署名鍵・マイグレーション・Google OAuth）は
+> [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md) にまとめています。**
 
 テーブル定義・制約・RLS ポリシーは [`docs/DATABASE.md`](docs/DATABASE.md)、認証フローは [`docs/DESIGN.md`](docs/DESIGN.md) の §7 を参照してください。
 
@@ -213,6 +218,7 @@ Rensoo/
 | [`docs/TECH_STACK.md`](docs/TECH_STACK.md)                                     | 技術選定（採用技術・比較・バージョン・全体像）                   |
 | [`docs/DESIGN.md`](docs/DESIGN.md)                                             | アーキテクチャ（レイヤ・拡張点 IF・API・自走展開フロー）         |
 | [`docs/DATABASE.md`](docs/DATABASE.md)                                         | DB 設計（テーブル・制約・RLS・マイグレーション・ER 図）          |
+| [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)                             | Supabase 導入手順（プロジェクト作成・環境変数・OAuth・適用）     |
 | [`docs/DIRECTORY_STRUCTURE.md`](docs/DIRECTORY_STRUCTURE.md)                   | フォルダ／ファイル階層・配置ルール                               |
 | [`docs/TASKS.md`](docs/TASKS.md)                                               | 実装タスク分解（T01〜T16・トレーサビリティ）                     |
 | [`docs/GIT_CONVENTIONS.md`](docs/GIT_CONVENTIONS.md)                           | Git 運用（1 機能=1 ブランチ=1 PR・Conventional Commits）         |
